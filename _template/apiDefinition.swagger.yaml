@@ -1,0 +1,274 @@
+# ============================================================================
+# Power Automate Custom Connector - OpenAPI 2.0 Definition Template
+# ============================================================================
+# IMPORTANT: Only OpenAPI 2.0 (Swagger) format is supported.
+#            OpenAPI 3.0 is NOT supported by Power Platform.
+# ============================================================================
+
+swagger: "2.0"
+
+# ============================================================================
+# CONNECTOR INFORMATION
+# ============================================================================
+info:
+  title: "Connector Name"                    # Max 30 characters, no "API" word
+  description: "Description of what this connector does. Must not mention Power Platform products."
+  version: "1.0.0"
+  contact:
+    name: "Your Name"
+    email: "your.email@example.com"
+
+# ============================================================================
+# HOST AND SCHEMES
+# ============================================================================
+host: "api.example.com"                      # API host without protocol
+basePath: "/"                                # Base path for all operations
+schemes:
+  - https                                    # Always prefer HTTPS
+
+# ============================================================================
+# CONTENT TYPES
+# ============================================================================
+consumes:
+  - application/json
+produces:
+  - application/json
+
+# ============================================================================
+# SECURITY (Choose one authentication method)
+# ============================================================================
+# Uncomment the appropriate security definition for your API
+
+# --- API Key Authentication ---
+# securityDefinitions:
+#   api_key:
+#     type: apiKey
+#     in: header
+#     name: X-API-Key
+# security:
+#   - api_key: []
+
+# --- OAuth 2.0 Authentication ---
+# securityDefinitions:
+#   oauth2:
+#     type: oauth2
+#     flow: accessCode
+#     authorizationUrl: https://example.com/oauth/authorize
+#     tokenUrl: https://example.com/oauth/token
+#     scopes:
+#       read: Read access
+#       write: Write access
+# security:
+#   - oauth2: [read, write]
+
+# --- Basic Authentication ---
+# securityDefinitions:
+#   basic:
+#     type: basic
+# security:
+#   - basic: []
+
+# ============================================================================
+# PATHS (API Operations)
+# ============================================================================
+paths:
+
+  # --------------------------------------------------------------------------
+  # Example GET Operation
+  # --------------------------------------------------------------------------
+  /items:
+    get:
+      operationId: GetItems                  # PascalCase, no hyphens/underscores
+      summary: "Get all items"               # Short, max 80 chars
+      description: "Retrieves a list of all available items from the API."
+      x-ms-visibility: "important"           # important, advanced, or internal
+      parameters:
+        - name: limit
+          in: query
+          type: integer
+          required: false
+          default: 10
+          description: "Maximum number of items to return."
+          x-ms-summary: "Limit"
+        - name: offset
+          in: query
+          type: integer
+          required: false
+          default: 0
+          description: "Number of items to skip."
+          x-ms-summary: "Offset"
+      responses:
+        200:
+          description: "Successfully retrieved items."
+          schema:
+            $ref: "#/definitions/ItemListResponse"
+        400:
+          description: "Bad request. Invalid parameters."
+        401:
+          description: "Unauthorized. Authentication required."
+        500:
+          description: "Internal server error."
+
+  # --------------------------------------------------------------------------
+  # Example GET by ID Operation
+  # --------------------------------------------------------------------------
+  /items/{id}:
+    get:
+      operationId: GetItemById
+      summary: "Get item by ID"
+      description: "Retrieves a specific item by its unique identifier."
+      parameters:
+        - $ref: "#/parameters/ItemIdInPath"
+      responses:
+        200:
+          description: "Successfully retrieved item."
+          schema:
+            $ref: "#/definitions/Item"
+        404:
+          description: "Item not found."
+        500:
+          description: "Internal server error."
+
+  # --------------------------------------------------------------------------
+  # Example POST Operation
+  # --------------------------------------------------------------------------
+    post:
+      operationId: CreateItem
+      summary: "Create new item"
+      description: "Creates a new item with the provided data."
+      parameters:
+        - name: body
+          in: body
+          required: true
+          description: "Item data to create."
+          schema:
+            $ref: "#/definitions/CreateItemRequest"
+      responses:
+        201:
+          description: "Item created successfully."
+          schema:
+            $ref: "#/definitions/Item"
+        400:
+          description: "Bad request. Invalid item data."
+        500:
+          description: "Internal server error."
+
+  # --------------------------------------------------------------------------
+  # Example DELETE Operation
+  # --------------------------------------------------------------------------
+    delete:
+      operationId: DeleteItem
+      summary: "Delete item"
+      description: "Deletes an item by its unique identifier."
+      parameters:
+        - $ref: "#/parameters/ItemIdInPath"
+      responses:
+        204:
+          description: "Item deleted successfully."
+        404:
+          description: "Item not found."
+        500:
+          description: "Internal server error."
+
+# ============================================================================
+# REUSABLE PARAMETERS
+# ============================================================================
+parameters:
+  ItemIdInPath:
+    name: id
+    in: path
+    type: string
+    required: true
+    description: "Unique identifier of the item."
+    x-ms-summary: "Item ID"
+    x-ms-url-encoding: "single"
+
+# ============================================================================
+# DATA MODELS (Definitions)
+# ============================================================================
+definitions:
+
+  # --------------------------------------------------------------------------
+  # Item Model
+  # --------------------------------------------------------------------------
+  Item:
+    type: object
+    properties:
+      id:
+        type: string
+        description: "Unique identifier for the item."
+        x-ms-summary: "ID"
+      name:
+        type: string
+        description: "Name of the item."
+        x-ms-summary: "Name"
+      description:
+        type: string
+        description: "Detailed description of the item."
+        x-ms-summary: "Description"
+      createdAt:
+        type: string
+        format: date-time
+        description: "Timestamp when the item was created."
+        x-ms-summary: "Created At"
+      updatedAt:
+        type: string
+        format: date-time
+        description: "Timestamp when the item was last updated."
+        x-ms-summary: "Updated At"
+
+  # --------------------------------------------------------------------------
+  # Item List Response
+  # --------------------------------------------------------------------------
+  ItemListResponse:
+    type: object
+    properties:
+      items:
+        type: array
+        description: "List of items."
+        items:
+          $ref: "#/definitions/Item"
+      total:
+        type: integer
+        description: "Total number of items available."
+        x-ms-summary: "Total Count"
+      limit:
+        type: integer
+        description: "Maximum items per page."
+        x-ms-summary: "Limit"
+      offset:
+        type: integer
+        description: "Current offset."
+        x-ms-summary: "Offset"
+
+  # --------------------------------------------------------------------------
+  # Create Item Request
+  # --------------------------------------------------------------------------
+  CreateItemRequest:
+    type: object
+    required:
+      - name
+    properties:
+      name:
+        type: string
+        description: "Name of the item to create."
+        x-ms-summary: "Name"
+      description:
+        type: string
+        description: "Optional description for the item."
+        x-ms-summary: "Description"
+
+  # --------------------------------------------------------------------------
+  # Error Response
+  # --------------------------------------------------------------------------
+  ErrorResponse:
+    type: object
+    properties:
+      error:
+        type: string
+        description: "Error message describing what went wrong."
+        x-ms-summary: "Error"
+      code:
+        type: string
+        description: "Error code for programmatic handling."
+        x-ms-summary: "Error Code"
