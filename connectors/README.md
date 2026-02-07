@@ -26,7 +26,7 @@ connectors/
 
 | Connector | Description | Status |
 |-----------|-------------|--------|
-| *None yet* | Add connectors here | - |
+| [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | ✅ Ready |
 
 ---
 
