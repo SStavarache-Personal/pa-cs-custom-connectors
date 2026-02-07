@@ -51,9 +51,58 @@ Each connector folder **must** contain the following files for manual import int
 
 ---
 
-## 🚀 Manual Deployment (Copy-Paste Method)
+## 🚀 Deployment Options
 
-### Step 1: Create the Custom Connector
+### Option 1: Automated Deployment (Recommended)
+
+Use the PowerShell deployment script with the Power Platform CLI:
+
+```powershell
+# 1. Configure your environment
+copy .env.example .env
+# Edit .env and add your POWER_PLATFORM_ENVIRONMENT and SOLUTION_UNIQUE_NAME
+
+# 2. Authenticate to Power Platform (one-time setup)
+pac auth create
+
+# 3. Deploy a connector
+.\deploy-connector.ps1 -ConnectorName "HttpRequestAdvanced"
+```
+
+**Prerequisites:**
+- [Power Platform CLI](https://aka.ms/PowerPlatformCLI) installed
+- Authenticated to Power Platform (`pac auth create`)
+- `.env` file configured with environment settings
+
+**Script Features:**
+- ✅ Validates connector files before deployment
+- ✅ Loads configuration from `.env` file
+- ✅ Supports environment and solution overrides
+- ✅ Deploys API definition, script, and optional icon
+- ✅ Color-coded output with deployment status
+
+**Command Options:**
+```powershell
+# Basic usage
+.\deploy-connector.ps1 -ConnectorName "YourConnector"
+
+# Override environment
+.\deploy-connector.ps1 -ConnectorName "YourConnector" -Environment "env-guid-or-url"
+
+# Override solution
+.\deploy-connector.ps1 -ConnectorName "YourConnector" -SolutionUniqueName "MySolution"
+
+# Override both
+.\deploy-connector.ps1 -ConnectorName "YourConnector" -Environment "env-guid" -SolutionUniqueName "MySolution"
+```
+
+---
+
+### Option 2: Manual Deployment (Portal Method)
+
+If you prefer the UI or don't have CLI access:
+
+#### Step 1: Create the Custom Connector
 
 1. Sign in to [Power Automate](https://make.powerautomate.com)
 2. Navigate to **Data** → **Custom connectors**
@@ -61,7 +110,7 @@ Each connector folder **must** contain the following files for manual import int
 4. Name your connector and upload the `apiDefinition.swagger.yaml` file
 5. Click **Continue**
 
-### Step 2: Add the C# Script
+#### Step 2: Add the C# Script
 
 1. In the connector wizard, navigate to the **Code** tab
 2. Enable **Code** toggle
@@ -69,11 +118,13 @@ Each connector folder **must** contain the following files for manual import int
 4. Paste into the code editor
 5. Select operations that should use the custom code
 
-### Step 3: Create and Test Connection
+#### Step 3: Create and Test Connection
 
 1. Navigate to the **Test** tab
 2. Create a new connection
 3. Test each operation to verify functionality
+
+See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed manual deployment steps.
 
 ---
 
