@@ -544,7 +544,6 @@ public class Script : ScriptBase
             "image/gif",
             "image/bmp",
             "image/webp",
-            "image/svg+xml",
             "image/tiff",
             "audio/mpeg",
             "audio/ogg",
@@ -559,6 +558,21 @@ public class Script : ScriptBase
             "font/otf"
         };
 
+        // List of text-based content types that should NOT be treated as binary
+        string[] textTypes = new[]
+        {
+            "image/svg+xml" // SVG is XML-based text
+        };
+
+        // Check if it's explicitly a text type
+        foreach (string textType in textTypes)
+        {
+            if (normalizedType == textType)
+            {
+                return false;
+            }
+        }
+
         // Check if content type matches any binary type
         foreach (string binaryType in binaryTypes)
         {
@@ -568,11 +582,17 @@ public class Script : ScriptBase
             }
         }
 
-        // Check for common binary prefixes
-        if (normalizedType.StartsWith("image/") ||
-            normalizedType.StartsWith("audio/") ||
+        // Check for common binary prefixes (excluding known text-based formats)
+        if (normalizedType.StartsWith("audio/") ||
             normalizedType.StartsWith("video/") ||
             normalizedType.StartsWith("font/"))
+        {
+            return true;
+        }
+
+        // Check for image types but exclude SVG
+        if (normalizedType.StartsWith("image/") && 
+            !normalizedType.Contains("svg"))
         {
             return true;
         }
