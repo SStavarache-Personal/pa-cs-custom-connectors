@@ -26,7 +26,7 @@ public class Script : ScriptBase
     private const int MAX_ALLOWED_REDIRECTS = 50;
 
     // Binary content type lists (static to avoid repeated allocations)
-    private static readonly string[] BinaryContentTypes = new[]
+    private static readonly HashSet<string> BinaryContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "application/zip",
         "application/x-zip-compressed",
@@ -62,7 +62,7 @@ public class Script : ScriptBase
         "font/otf"
     };
 
-    private static readonly string[] TextContentTypes = new[]
+    private static readonly HashSet<string> TextContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "image/svg+xml" // SVG is XML-based text
     };
@@ -563,25 +563,19 @@ public class Script : ScriptBase
         // Normalize content type (remove charset and other parameters)
         string normalizedType = contentType.Split(';')[0].Trim().ToLowerInvariant();
 
-        // Check if it's explicitly a text type
-        foreach (string textType in TextContentTypes)
+        // Check if it's explicitly a text type (takes precedence)
+        if (TextContentTypes.Contains(normalizedType))
         {
-            if (normalizedType == textType)
-            {
-                return false;
-            }
+            return false;
         }
 
         // Check if content type matches any binary type
-        foreach (string binaryType in BinaryContentTypes)
+        if (BinaryContentTypes.Contains(normalizedType))
         {
-            if (normalizedType == binaryType)
-            {
-                return true;
-            }
+            return true;
         }
 
-        // Check for common binary prefixes
+        // Check for common binary prefixes (excluding known text-based formats already checked)
         if (normalizedType.StartsWith("image/") ||
             normalizedType.StartsWith("audio/") ||
             normalizedType.StartsWith("video/") ||
