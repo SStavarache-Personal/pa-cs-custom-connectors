@@ -25,6 +25,48 @@ public class Script : ScriptBase
     private const int DEFAULT_TIMEOUT_SECONDS = 100;
     private const int MAX_ALLOWED_REDIRECTS = 50;
 
+    // Binary content type lists (static to avoid repeated allocations)
+    private static readonly string[] BinaryContentTypes = new[]
+    {
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/octet-stream",
+        "application/pdf",
+        "application/gzip",
+        "application/x-gzip",
+        "application/x-tar",
+        "application/x-7z-compressed",
+        "application/x-rar-compressed",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "image/tiff",
+        "audio/mpeg",
+        "audio/ogg",
+        "audio/wav",
+        "video/mp4",
+        "video/mpeg",
+        "video/quicktime",
+        "video/x-msvideo",
+        "font/woff",
+        "font/woff2",
+        "font/ttf",
+        "font/otf"
+    };
+
+    private static readonly string[] TextContentTypes = new[]
+    {
+        "image/svg+xml" // SVG is XML-based text
+    };
+
     /// <summary>
     /// Entry point for the custom connector.
     /// </summary>
@@ -521,51 +563,8 @@ public class Script : ScriptBase
         // Normalize content type (remove charset and other parameters)
         string normalizedType = contentType.Split(';')[0].Trim().ToLowerInvariant();
 
-        // List of binary content types
-        string[] binaryTypes = new[]
-        {
-            "application/zip",
-            "application/x-zip-compressed",
-            "application/octet-stream",
-            "application/pdf",
-            "application/gzip",
-            "application/x-gzip",
-            "application/x-tar",
-            "application/x-7z-compressed",
-            "application/x-rar-compressed",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/bmp",
-            "image/webp",
-            "image/tiff",
-            "audio/mpeg",
-            "audio/ogg",
-            "audio/wav",
-            "video/mp4",
-            "video/mpeg",
-            "video/quicktime",
-            "video/x-msvideo",
-            "font/woff",
-            "font/woff2",
-            "font/ttf",
-            "font/otf"
-        };
-
-        // List of text-based content types that should NOT be treated as binary
-        string[] textTypes = new[]
-        {
-            "image/svg+xml" // SVG is XML-based text
-        };
-
         // Check if it's explicitly a text type
-        foreach (string textType in textTypes)
+        foreach (string textType in TextContentTypes)
         {
             if (normalizedType == textType)
             {
@@ -574,7 +573,7 @@ public class Script : ScriptBase
         }
 
         // Check if content type matches any binary type
-        foreach (string binaryType in binaryTypes)
+        foreach (string binaryType in BinaryContentTypes)
         {
             if (normalizedType == binaryType)
             {
@@ -582,17 +581,11 @@ public class Script : ScriptBase
             }
         }
 
-        // Check for common binary prefixes (excluding known text-based formats)
-        if (normalizedType.StartsWith("audio/") ||
+        // Check for common binary prefixes
+        if (normalizedType.StartsWith("image/") ||
+            normalizedType.StartsWith("audio/") ||
             normalizedType.StartsWith("video/") ||
             normalizedType.StartsWith("font/"))
-        {
-            return true;
-        }
-
-        // Check for image types but exclude SVG
-        if (normalizedType.StartsWith("image/") && 
-            !normalizedType.Contains("svg"))
         {
             return true;
         }
