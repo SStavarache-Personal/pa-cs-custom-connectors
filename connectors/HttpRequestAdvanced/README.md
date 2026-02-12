@@ -76,6 +76,7 @@ The connector returns a JSON object with the following structure:
     "Server": "nginx"
   },
   "body": "Response content as string",
+  "isBase64Encoded": false,
   "redirectCount": 2,
   "finalUrl": "https://api.example.com/v2/data",
   "isSuccess": true
@@ -89,10 +90,57 @@ The connector returns a JSON object with the following structure:
 | `statusCode` | integer | HTTP status code (e.g., 200, 404, 500) |
 | `statusDescription` | string | HTTP status description (e.g., "OK", "Not Found") |
 | `headers` | object | Response headers as key-value pairs |
-| `body` | string | Response body content |
+| `body` | string | Response body content (Base64-encoded if binary) |
+| `isBase64Encoded` | boolean | True if body is Base64-encoded (for binary content) |
 | `redirectCount` | integer | Number of redirects followed |
 | `finalUrl` | string | Final URL after following all redirects |
 | `isSuccess` | boolean | True if status code is 2xx |
+
+## Binary Content Handling
+
+The connector automatically detects binary content types and Base64-encodes them to prevent data corruption. This is essential for file downloads like ZIP, PDF, images, and other binary formats.
+
+### Supported Binary Content Types
+
+Binary content is detected based on the `Content-Type` response header and includes:
+
+- **Archives**: `application/zip`, `application/gzip`, `application/x-tar`, `application/x-7z-compressed`, `application/x-rar-compressed`
+- **Documents**: `application/pdf`, Microsoft Office formats (Word, Excel, PowerPoint)
+- **Images**: `image/jpeg`, `image/png`, `image/gif`, `image/bmp`, `image/webp`, `image/tiff`
+- **Audio/Video**: `audio/mpeg`, `audio/wav`, `video/mp4`, `video/mpeg`
+- **Fonts**: `font/woff`, `font/woff2`, `font/ttf`, `font/otf`
+- **Generic Binary**: `application/octet-stream`
+
+### Working with Binary Responses
+
+When `isBase64Encoded` is `true`, decode the `body` field using Base64 decoding:
+
+**Example: Download and Save ZIP File**
+
+```json
+// Power Automate Flow:
+// 1. Call HTTP Request Advanced with ZIP file URL
+// 2. Check if isBase64Encoded == true
+// 3. Use "Compose" action to decode: base64ToBinary(outputs('HTTP_Request')?['body']['body'])
+// 4. Use "Create file" action to save the decoded binary content
+```
+
+**Example Response for Binary Content**:
+```json
+{
+  "statusCode": 200,
+  "statusDescription": "OK",
+  "headers": {
+    "Content-Type": "application/zip",
+    "Content-Length": "4287361"
+  },
+  "body": "UEsDBBQACAAIAE9HJlwAAAAAAAAAAAAAABMAIABub2NfdmV0X3NwZWNpZXMudHh0dXgLAAEEAAAAAAQAAAAAAFVUDQAHBqB8aQag...",
+  "isBase64Encoded": true,
+  "redirectCount": 0,
+  "finalUrl": "https://www.canada.ca/content/dam/hc-sc/documents/services/drugs-health-products/drug-products/notice-compliance/database/noc_files.zip",
+  "isSuccess": true
+}
+```
 
 ## Usage Examples
 
