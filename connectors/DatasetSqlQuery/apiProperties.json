@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#0063B1",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "ExecuteDatasetSqlQuery"
+    ]
+  }
+}

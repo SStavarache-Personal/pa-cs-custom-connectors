@@ -1,0 +1,257 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Dataset SQL Query",
+    "description": "Run read-only SQL queries against user-provided JSON or CSV datasets with selectable output formats.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector",
+      "email": "support@example.com"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/execute": {
+      "post": {
+        "operationId": "ExecuteDatasetSqlQuery",
+        "summary": "Execute SQL query",
+        "description": "Executes a read-only SQL query against one or more provided datasets.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query executed successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal execution error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ExecuteQueryRequest": {
+      "type": "object",
+      "required": [
+        "sql",
+        "outputMode",
+        "datasets"
+      ],
+      "properties": {
+        "sql": {
+          "type": "string",
+          "description": "Read-only SQL query to execute.",
+          "x-ms-summary": "SQL"
+        },
+        "outputMode": {
+          "type": "string",
+          "enum": [
+            "Csv",
+            "RowsAndSchema",
+            "ObjectArray"
+          ],
+          "description": "Result output mode.",
+          "x-ms-summary": "Output Mode"
+        },
+        "datasets": {
+          "type": "array",
+          "description": "Datasets available as SQL tables.",
+          "x-ms-summary": "Datasets",
+          "items": {
+            "$ref": "#/definitions/DatasetInput"
+          }
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "DatasetInput": {
+      "type": "object",
+      "required": [
+        "name",
+        "format"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Dataset table name used in SQL.",
+          "x-ms-summary": "Dataset Name"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "Json",
+            "Csv"
+          ],
+          "description": "Dataset payload format.",
+          "x-ms-summary": "Format"
+        },
+        "jsonRows": {
+          "type": "array",
+          "description": "JSON row objects. Required when format is Json.",
+          "x-ms-summary": "JSON Rows",
+          "items": {
+            "type": "object"
+          }
+        },
+        "csvText": {
+          "type": "string",
+          "description": "CSV content. Required when format is Csv.",
+          "x-ms-summary": "CSV Text"
+        },
+        "csvOptions": {
+          "$ref": "#/definitions/CsvOptions"
+        },
+        "typeOverrides": {
+          "type": "object",
+          "description": "Optional map of column name to target type.",
+          "x-ms-summary": "Type Overrides"
+        }
+      }
+    },
+    "CsvOptions": {
+      "type": "object",
+      "properties": {
+        "separator": {
+          "type": "string",
+          "description": "CSV separator character.",
+          "default": ",",
+          "x-ms-summary": "Separator",
+          "x-ms-visibility": "advanced"
+        },
+        "quote": {
+          "type": "string",
+          "description": "CSV quote character.",
+          "default": "\"",
+          "x-ms-summary": "Quote",
+          "x-ms-visibility": "advanced"
+        },
+        "lineBreak": {
+          "type": "string",
+          "enum": [
+            "Auto",
+            "LF",
+            "CRLF",
+            "CR"
+          ],
+          "default": "Auto",
+          "description": "Line break mode.",
+          "x-ms-summary": "Line Break",
+          "x-ms-visibility": "advanced"
+        },
+        "firstRowIsHeader": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether first CSV row contains column headers.",
+          "x-ms-summary": "Header Row",
+          "x-ms-visibility": "advanced"
+        },
+        "allColumnsAsString": {
+          "type": "boolean",
+          "default": false,
+          "description": "Read all CSV columns as strings.",
+          "x-ms-summary": "All Columns As String",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "EngineOptions": {
+      "type": "object",
+      "properties": {
+        "caseSensitiveIdentifiers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether SQL identifiers are case-sensitive.",
+          "x-ms-summary": "Case Sensitive Identifiers",
+          "x-ms-visibility": "advanced"
+        },
+        "nullsSort": {
+          "type": "string",
+          "enum": [
+            "First",
+            "Last"
+          ],
+          "default": "Last",
+          "description": "Default null sort direction.",
+          "x-ms-summary": "Null Sort",
+          "x-ms-visibility": "advanced"
+        },
+        "maxOutputRows": {
+          "type": "integer",
+          "default": 100000,
+          "description": "Maximum rows returned by query.",
+          "x-ms-summary": "Max Output Rows",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "ExecuteQueryResponse": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "integer"
+        },
+        "durationMs": {
+          "type": "integer"
+        },
+        "result": {
+          "type": "object"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            },
+            "details": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}
