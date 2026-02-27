@@ -1,11 +1,18 @@
 # ============================================================================
 # Power Automate Custom Connector Deployment Script
 # ============================================================================
-# Deploys a custom connector to Power Platform using pac CLI
+# Deploys (creates or updates) a custom connector to Power Platform using pac CLI.
 #
 # Usage:
 #   .\deploy-connector.ps1 -ConnectorName "HttpRequestAdvanced"
 #   .\deploy-connector.ps1 -ConnectorName "YourConnector" -Environment "guid-or-url"
+#   .\deploy-connector.ps1 -ConnectorName "YourConnector" -ConnectorId "guid"
+#
+# Behaviour:
+#   - If -ConnectorId is provided, the script updates that connector directly.
+#   - Otherwise it attempts to create a new connector. If creation fails because
+#     the connector already exists, the script automatically looks up the existing
+#     connector ID via 'pac connector list' and retries as an update.
 #
 # Prerequisites:
 #   - Microsoft Power Platform CLI (pac) installed
@@ -21,7 +28,10 @@ param(
     [string]$Environment = "",
     
     [Parameter(Mandatory=$false, HelpMessage="Override solution name from .env file")]
-    [string]$SolutionUniqueName = ""
+    [string]$SolutionUniqueName = "",
+
+    [Parameter(Mandatory=$false, HelpMessage="Connector ID for updating an existing connector. When provided the script uses 'pac connector update' instead of 'pac connector create'.")]
+    [string]$ConnectorId = ""
 )
 
 # Set error action preference
@@ -107,6 +117,136 @@ function Test-ConnectorFiles {
     }
     
     return $errors
+}
+
+function Convert-CommandOutputToString {
+    param([object[]]$CommandOutput)
+
+    if ($null -eq $CommandOutput) {
+        return ""
+    }
+
+    return ($CommandOutput | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+}
+
+function Test-IsExpiredAuthTokenError {
+    param([object[]]$CommandOutput)
+
+    $outputText = Convert-CommandOutputToString -CommandOutput $CommandOutput
+
+    return ($outputText -match "AADSTS70043") -or
+           ($outputText -match "refresh token has expired or is invalid")
+}
+
+function Invoke-PacConnectorCreate {
+    param([string[]]$PacArgs)
+
+    $output = & pac connector create @PacArgs 2>&1
+    $exitCode = $LASTEXITCODE
+
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        Output = $output
+    }
+}
+
+function Invoke-PacConnectorUpdate {
+    param([string[]]$PacArgs)
+
+    $output = & pac connector update @PacArgs 2>&1
+    $exitCode = $LASTEXITCODE
+
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        Output = $output
+    }
+}
+
+function Test-IsConnectorExistsError {
+    param([object[]]$CommandOutput)
+
+    $outputText = Convert-CommandOutputToString -CommandOutput $CommandOutput
+
+    return $outputText -match "already exists in the org"
+}
+
+function Get-ExistingConnectorId {
+    param(
+        [string]$ApiDefFile,
+        [string]$TargetEnvironment
+    )
+
+    # Read the connector title from the swagger definition to derive its
+    # logical name, then match it against 'pac connector list' output.
+    try {
+        $swaggerJson = Get-Content -Path $ApiDefFile -Raw | ConvertFrom-Json
+        $connectorTitle = $swaggerJson.info.title
+    }
+    catch {
+        Write-ColorOutput "  [!] Could not read connector title from API definition." "Yellow"
+        return $null
+    }
+
+    if ([string]::IsNullOrWhiteSpace($connectorTitle)) {
+        Write-ColorOutput "  [!] Connector title is empty in API definition." "Yellow"
+        return $null
+    }
+
+    # Build the logical name the same way Power Platform does:
+    # lowercase, spaces become -20, prefixed with new_
+    $logicalName = "new_" + ($connectorTitle.ToLower() -replace ' ', '-20')
+
+    Write-ColorOutput "  [>] Looking up existing connector (logical name: $logicalName)..." "Gray"
+
+    $listArgs = @("connector", "list")
+    if ($TargetEnvironment) {
+        $listArgs += "--environment"
+        $listArgs += $TargetEnvironment
+    }
+
+    $listOutput = & pac @listArgs 2>&1
+    $listExitCode = $LASTEXITCODE
+
+    if ($listExitCode -ne 0) {
+        Write-ColorOutput "  [!] Failed to list connectors." "Yellow"
+        return $null
+    }
+
+    # Parse the table output — each line that starts with a GUID is a connector row
+    foreach ($line in $listOutput) {
+        $lineStr = $line.ToString()
+        if ($lineStr -match '^\s*([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\s+(\S+)') {
+            $id = $matches[1]
+            $name = $matches[2]
+            if ($name -eq $logicalName) {
+                return $id
+            }
+        }
+    }
+
+    Write-ColorOutput "  [!] Could not find connector with logical name '$logicalName' in the environment." "Yellow"
+    return $null
+}
+
+function Invoke-PacReauthentication {
+    param([string]$TargetEnvironment)
+
+    $authArgs = @("auth", "create")
+    if ($TargetEnvironment) {
+        $authArgs += "--environment"
+        $authArgs += $TargetEnvironment
+    }
+
+    Write-ColorOutput "  [!] Authentication token appears expired. Starting re-authentication..." "Yellow"
+    Write-ColorOutput "  [!] Complete the sign-in flow if prompted." "Yellow"
+
+    $output = & pac @authArgs 2>&1
+    $exitCode = $LASTEXITCODE
+
+    return [PSCustomObject]@{
+        ExitCode = $exitCode
+        Output = $output
+    }
 }
 
 # ============================================================================
@@ -230,63 +370,193 @@ if (-not $hasApiProperties) {
 # STEP 4: Execute Deployment
 # ============================================================================
 
-Write-ColorOutput "`n[4/4] Deploying connector to Power Platform..." "Yellow"
+# Determine deployment mode
+$isUpdate = -not [string]::IsNullOrWhiteSpace($ConnectorId)
 
-# Build pac command
-$pacCommand = "pac connector create"
-$pacArgs = @()
+if ($isUpdate) {
+    Write-ColorOutput "`n[4/4] Updating existing connector ($ConnectorId)..." "Yellow"
+} else {
+    Write-ColorOutput "`n[4/4] Deploying connector to Power Platform..." "Yellow"
+}
+
+# Build shared file arguments (used by both create and update)
+$fileArgs = @()
 
 # Add environment if specified
 if ($targetEnvironment) {
-    $pacArgs += "--environment"
-    $pacArgs += "`"$targetEnvironment`""
+    $fileArgs += "--environment"
+    $fileArgs += $targetEnvironment
 }
 
 # Add required files
-$pacArgs += "--api-definition-file"
-$pacArgs += "`"$apiDefFile`""
+$fileArgs += "--api-definition-file"
+$fileArgs += $apiDefFile
 
-$pacArgs += "--api-properties-file"
-$pacArgs += "`"$apiPropertiesFile`""
+$fileArgs += "--api-properties-file"
+$fileArgs += $apiPropertiesFile
 
-$pacArgs += "--script-file"
-$pacArgs += "`"$scriptFile`""
+$fileArgs += "--script-file"
+$fileArgs += $scriptFile
 
 # Add optional files
 if ($hasIcon) {
-    $pacArgs += "--icon-file"
-    $pacArgs += "`"$iconFile`""
+    $fileArgs += "--icon-file"
+    $fileArgs += $iconFile
 }
 
 # Add solution if specified
 if ($targetSolution) {
-    $pacArgs += "--solution-unique-name"
-    $pacArgs += "`"$targetSolution`""
+    $fileArgs += "--solution-unique-name"
+    $fileArgs += $targetSolution
 }
 
-# Display command
-$fullCommand = "$pacCommand $($pacArgs -join ' ')"
-Write-ColorOutput "`nExecuting command:" "Gray"
-Write-ColorOutput $fullCommand "Gray"
-Write-ColorOutput ""
+# ---- Helper: display and run a deployment command ----
+function Invoke-Deployment {
+    param(
+        [string]$Mode,          # "create" or "update"
+        [string[]]$FileArgs,
+        [string]$ConnectorId    # required for update
+    )
 
-# Execute deployment
-try {
-    $result = & pac connector create @pacArgs 2>&1
-    
-    if ($LASTEXITCODE -eq 0) {
-        Write-ColorOutput "`n================================================" "Green"
-        Write-ColorOutput "  [SUCCESS] Deployment Successful!" "Green"
-        Write-ColorOutput "================================================`n" "Green"
-        Write-ColorOutput "Output:" "White"
-        Write-Output $result
+    $pacArgs = $FileArgs.Clone()
+
+    if ($Mode -eq "update") {
+        $pacArgs += "--connector-id"
+        $pacArgs += $ConnectorId
+        $displayCommand = "pac connector update"
     } else {
-        Write-ColorOutput "`n================================================" "Red"
-        Write-ColorOutput "  [FAILED] Deployment Failed" "Red"
-        Write-ColorOutput "================================================`n" "Red"
-        Write-ColorOutput "Error Output:" "Red"
-        Write-Output $result
-        exit 1
+        $displayCommand = "pac connector create"
+    }
+
+    # Display command
+    $displayArgs = ($pacArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } })
+    $fullCommand = "$displayCommand $($displayArgs -join ' ')"
+    Write-ColorOutput "`nExecuting command:" "Gray"
+    Write-ColorOutput $fullCommand "Gray"
+    Write-ColorOutput ""
+
+    if ($Mode -eq "update") {
+        return Invoke-PacConnectorUpdate -PacArgs $pacArgs
+    } else {
+        return Invoke-PacConnectorCreate -PacArgs $pacArgs
+    }
+}
+
+# ---- Helper: handle a successful result ----
+function Write-DeploymentSuccess {
+    param(
+        [string]$Suffix,
+        [object[]]$Output
+    )
+    $label = if ($Suffix) { "  [SUCCESS] Deployment Successful ($Suffix)!" } else { "  [SUCCESS] Deployment Successful!" }
+    Write-ColorOutput "`n================================================" "Green"
+    Write-ColorOutput $label "Green"
+    Write-ColorOutput "================================================`n" "Green"
+    Write-ColorOutput "Output:" "White"
+    Write-Output $Output
+}
+
+# ---- Main deployment logic ----
+try {
+    if ($isUpdate) {
+        # Explicit update mode — go straight to update
+        $attempt = Invoke-Deployment -Mode "update" -FileArgs $fileArgs -ConnectorId $ConnectorId
+
+        if ($attempt.ExitCode -eq 0) {
+            Write-DeploymentSuccess -Suffix "update" -Output $attempt.Output
+        } elseif (Test-IsExpiredAuthTokenError -CommandOutput $attempt.Output) {
+            $authAttempt = Invoke-PacReauthentication -TargetEnvironment $targetEnvironment
+            if ($authAttempt.ExitCode -ne 0) {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Re-authentication Failed" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-Output $authAttempt.Output
+                exit 1
+            }
+            Write-ColorOutput "  [OK] Re-authentication completed. Retrying update..." "Green"
+            $retry = Invoke-Deployment -Mode "update" -FileArgs $fileArgs -ConnectorId $ConnectorId
+            if ($retry.ExitCode -eq 0) {
+                Write-DeploymentSuccess -Suffix "update after re-auth" -Output $retry.Output
+            } else {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Update Failed After Re-authentication" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-ColorOutput "Error Output:" "Red"
+                Write-Output $retry.Output
+                exit 1
+            }
+        } else {
+            Write-ColorOutput "`n================================================" "Red"
+            Write-ColorOutput "  [FAILED] Update Failed" "Red"
+            Write-ColorOutput "================================================`n" "Red"
+            Write-ColorOutput "Error Output:" "Red"
+            Write-Output $attempt.Output
+            exit 1
+        }
+    } else {
+        # Auto mode — try create first, fall back to update if connector exists
+        $attempt = Invoke-Deployment -Mode "create" -FileArgs $fileArgs
+
+        if ($attempt.ExitCode -eq 0) {
+            Write-DeploymentSuccess -Suffix "created" -Output $attempt.Output
+        } elseif (Test-IsExpiredAuthTokenError -CommandOutput $attempt.Output) {
+            $authAttempt = Invoke-PacReauthentication -TargetEnvironment $targetEnvironment
+            if ($authAttempt.ExitCode -ne 0) {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Re-authentication Failed" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-Output $authAttempt.Output
+                exit 1
+            }
+            Write-ColorOutput "  [OK] Re-authentication completed. Retrying create..." "Green"
+            $retry = Invoke-Deployment -Mode "create" -FileArgs $fileArgs
+            if ($retry.ExitCode -eq 0) {
+                Write-DeploymentSuccess -Suffix "created after re-auth" -Output $retry.Output
+            } else {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Deployment Failed After Re-authentication" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-ColorOutput "Error Output:" "Red"
+                Write-Output $retry.Output
+                exit 1
+            }
+        } elseif (Test-IsConnectorExistsError -CommandOutput $attempt.Output) {
+            # Connector already exists — look up its ID and update instead
+            Write-ColorOutput "`n  [!] Connector already exists. Switching to update mode..." "Yellow"
+
+            $existingId = Get-ExistingConnectorId -ApiDefFile $apiDefFile -TargetEnvironment $targetEnvironment
+
+            if (-not $existingId) {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Could Not Resolve Existing Connector ID" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-ColorOutput "The connector already exists but we could not determine its ID automatically." "Red"
+                Write-ColorOutput "Re-run with -ConnectorId `"<guid>`" to update it explicitly." "Yellow"
+                exit 1
+            }
+
+            Write-ColorOutput "  [OK] Found existing connector: $existingId" "Green"
+
+            $updateAttempt = Invoke-Deployment -Mode "update" -FileArgs $fileArgs -ConnectorId $existingId
+
+            if ($updateAttempt.ExitCode -eq 0) {
+                Write-DeploymentSuccess -Suffix "updated" -Output $updateAttempt.Output
+            } else {
+                Write-ColorOutput "`n================================================" "Red"
+                Write-ColorOutput "  [FAILED] Update Failed" "Red"
+                Write-ColorOutput "================================================`n" "Red"
+                Write-ColorOutput "Error Output:" "Red"
+                Write-Output $updateAttempt.Output
+                exit 1
+            }
+        } else {
+            Write-ColorOutput "`n================================================" "Red"
+            Write-ColorOutput "  [FAILED] Deployment Failed" "Red"
+            Write-ColorOutput "================================================`n" "Red"
+            Write-ColorOutput "Error Output:" "Red"
+            Write-Output $attempt.Output
+            exit 1
+        }
     }
 }
 catch {
