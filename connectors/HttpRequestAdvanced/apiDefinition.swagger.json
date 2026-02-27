@@ -208,6 +208,202 @@
           }
         }
       }
+    },
+    "/execute-batch": {
+      "post": {
+        "operationId": "ExecuteBatchHttpRequests",
+        "summary": "Execute Batch HTTP Requests",
+        "description": "Execute multiple HTTP requests in parallel and combine all response bodies into a single results array. Ideal for combining paginated API results into one dataset.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "required": ["requests"],
+              "properties": {
+                "requests": {
+                  "type": "array",
+                  "description": "Array of HTTP requests to execute in parallel.",
+                  "x-ms-summary": "Requests",
+                  "x-ms-visibility": "important",
+                  "items": {
+                    "type": "object",
+                    "required": ["url", "method"],
+                    "properties": {
+                      "url": {
+                        "type": "string",
+                        "description": "The complete URL to send the request to (including protocol).",
+                        "x-ms-summary": "URL"
+                      },
+                      "method": {
+                        "type": "string",
+                        "description": "The HTTP method to use.",
+                        "x-ms-summary": "Method",
+                        "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"],
+                        "default": "GET"
+                      },
+                      "headers": {
+                        "type": "string",
+                        "description": "Custom headers as a JSON object string (overrides shared headers for this request).",
+                        "x-ms-summary": "Headers (JSON)"
+                      },
+                      "queryParameters": {
+                        "type": "string",
+                        "description": "Query parameters as a JSON object string.",
+                        "x-ms-summary": "Query Parameters (JSON)"
+                      },
+                      "body": {
+                        "type": "string",
+                        "description": "Request body content.",
+                        "x-ms-summary": "Body"
+                      }
+                    }
+                  }
+                },
+                "resultsPath": {
+                  "type": "string",
+                  "description": "JSON property name to extract from each response body and merge. For example 'items' or 'data'. If omitted, the entire response body is added to the results array.",
+                  "x-ms-summary": "Results Path",
+                  "x-ms-visibility": "important"
+                },
+                "authenticationType": {
+                  "type": "string",
+                  "description": "Type of authentication to use for all requests.",
+                  "x-ms-summary": "Authentication Type",
+                  "x-ms-visibility": "advanced",
+                  "enum": ["None", "Basic", "Bearer"],
+                  "default": "None"
+                },
+                "username": {
+                  "type": "string",
+                  "description": "Username for Basic authentication.",
+                  "x-ms-summary": "Username",
+                  "x-ms-visibility": "advanced"
+                },
+                "password": {
+                  "type": "string",
+                  "description": "Password for Basic authentication.",
+                  "x-ms-summary": "Password",
+                  "x-ms-visibility": "advanced"
+                },
+                "bearerToken": {
+                  "type": "string",
+                  "description": "Bearer token for Bearer authentication.",
+                  "x-ms-summary": "Bearer Token",
+                  "x-ms-visibility": "advanced"
+                },
+                "followRedirects": {
+                  "type": "boolean",
+                  "description": "Whether to automatically follow HTTP redirects (default: true).",
+                  "x-ms-summary": "Follow Redirects",
+                  "x-ms-visibility": "advanced",
+                  "default": true
+                },
+                "maxRedirects": {
+                  "type": "integer",
+                  "description": "Maximum number of redirects to follow per request (default: 10).",
+                  "x-ms-summary": "Max Redirects",
+                  "x-ms-visibility": "advanced",
+                  "default": 10
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "description": "Timeout in seconds for each individual request (default: 100).",
+                  "x-ms-summary": "Timeout (seconds)",
+                  "x-ms-visibility": "advanced",
+                  "default": 100
+                },
+                "contentType": {
+                  "type": "string",
+                  "description": "Default Content-Type header for all requests.",
+                  "x-ms-summary": "Content Type",
+                  "x-ms-visibility": "advanced"
+                },
+                "validateSSL": {
+                  "type": "boolean",
+                  "description": "Whether to validate SSL certificates (default: true).",
+                  "x-ms-summary": "Validate SSL",
+                  "x-ms-visibility": "advanced",
+                  "default": true
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch execution completed",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "totalRequests": {
+                  "type": "integer",
+                  "description": "Total number of requests submitted"
+                },
+                "successCount": {
+                  "type": "integer",
+                  "description": "Number of requests that succeeded (2xx)"
+                },
+                "failureCount": {
+                  "type": "integer",
+                  "description": "Number of requests that failed"
+                },
+                "totalResults": {
+                  "type": "integer",
+                  "description": "Total number of items in the combined results array"
+                },
+                "results": {
+                  "type": "array",
+                  "description": "Combined results from all successful responses",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "errors": {
+                  "type": "array",
+                  "description": "Details of any failed requests",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "requestIndex": {
+                        "type": "integer",
+                        "description": "Index of the failed request in the input array"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "URL of the failed request"
+                      },
+                      "statusCode": {
+                        "type": "integer",
+                        "description": "HTTP status code (0 if request failed entirely)"
+                      },
+                      "error": {
+                        "type": "string",
+                        "description": "Error message"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {

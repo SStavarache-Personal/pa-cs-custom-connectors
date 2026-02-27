@@ -1,0 +1,494 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "INESSS Drug Evaluations",
+    "description": "Scrapes tabular data from the INESSS (Institut national d'excellence en santé et en services sociaux) medication evaluation page. Provides access to five datasets: generic drug work plan, innovator drug work plan, other work items, solicitations, and evaluated products (paginated).",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector"
+    }
+  },
+  "host": "www.inesss.qc.ca",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/generiques": {
+      "get": {
+        "operationId": "GetGeneriques",
+        "summary": "Get generic drug work plan",
+        "description": "Scrapes the Plan travail génériques table containing multisource (generic) drugs currently under evaluation by INESSS.",
+        "x-ms-visibility": "important",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully scraped generic drugs data.",
+            "schema": {
+              "$ref": "#/definitions/GeneriquesResponse"
+            }
+          },
+          "500": {
+            "description": "Scraping failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/innovateurs": {
+      "get": {
+        "operationId": "GetInnovateurs",
+        "summary": "Get innovator drug work plan",
+        "description": "Scrapes the Plan travail innovateurs table containing innovative drugs, medical devices, and blood products currently under continuous evaluation by INESSS. Includes status and comment deadline.",
+        "x-ms-visibility": "important",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully scraped innovator drugs data.",
+            "schema": {
+              "$ref": "#/definitions/InnovateursResponse"
+            }
+          },
+          "500": {
+            "description": "Scraping failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/autres-travaux": {
+      "get": {
+        "operationId": "GetAutresTravaux",
+        "summary": "Get other work items",
+        "description": "Scrapes the Autres travaux table containing miscellaneous evaluation work items being conducted by INESSS.",
+        "x-ms-visibility": "important",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully scraped other work items data.",
+            "schema": {
+              "$ref": "#/definitions/AutresTravauxResponse"
+            }
+          },
+          "500": {
+            "description": "Scraping failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sollicitations": {
+      "get": {
+        "operationId": "GetSollicitations",
+        "summary": "Get solicitations",
+        "description": "Scrapes the Sollicitations table containing invitations issued by INESSS to manufacturers for submission of evaluation or re-evaluation requests.",
+        "x-ms-visibility": "important",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successfully scraped solicitations data.",
+            "schema": {
+              "$ref": "#/definitions/SollicitationsResponse"
+            }
+          },
+          "500": {
+            "description": "Scraping failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/produits-evalues": {
+      "get": {
+        "operationId": "GetProduitsEvalues",
+        "summary": "Get evaluated products",
+        "description": "Scrapes one page of the Produits évalués table containing products already evaluated by INESSS along with the Minister's decisions. Returns 30 results per page. Use the page parameter to paginate through all results.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "type": "integer",
+            "required": false,
+            "default": 1,
+            "minimum": 1,
+            "description": "Page number (1-based). Returns 30 results per page.",
+            "x-ms-summary": "Page Number"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully scraped evaluated products data.",
+            "schema": {
+              "$ref": "#/definitions/ProduitsEvaluesResponse"
+            }
+          },
+          "500": {
+            "description": "Scraping failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "GeneriqueItem": {
+      "type": "object",
+      "properties": {
+        "nomCommercial": {
+          "type": "string",
+          "description": "Commercial name of the generic drug.",
+          "x-ms-summary": "Commercial Name"
+        },
+        "denominationCommune": {
+          "type": "string",
+          "description": "Common denomination (active ingredient).",
+          "x-ms-summary": "Common Denomination"
+        },
+        "nomFabricant": {
+          "type": "string",
+          "description": "Manufacturer name.",
+          "x-ms-summary": "Manufacturer"
+        }
+      }
+    },
+    "GeneriquesResponse": {
+      "type": "object",
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "description": "Name of the scraped table.",
+          "x-ms-summary": "Table Name"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of items returned.",
+          "x-ms-summary": "Count"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the data was scraped.",
+          "x-ms-summary": "Scraped At"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of generic drugs under evaluation.",
+          "items": {
+            "$ref": "#/definitions/GeneriqueItem"
+          }
+        }
+      }
+    },
+    "InnovateurItem": {
+      "type": "object",
+      "properties": {
+        "nomCommercial": {
+          "type": "string",
+          "description": "Commercial name of the drug.",
+          "x-ms-summary": "Commercial Name"
+        },
+        "denominationCommune": {
+          "type": "string",
+          "description": "Common denomination (active ingredient).",
+          "x-ms-summary": "Common Denomination"
+        },
+        "nomFabricant": {
+          "type": "string",
+          "description": "Manufacturer name.",
+          "x-ms-summary": "Manufacturer"
+        },
+        "indication": {
+          "type": "string",
+          "description": "Therapeutic indication.",
+          "x-ms-summary": "Indication"
+        },
+        "typeDemande": {
+          "type": "string",
+          "description": "Type of request (Première demande, Réévaluation, Pré-AC, etc.).",
+          "x-ms-summary": "Request Type"
+        },
+        "statutDemande": {
+          "type": "string",
+          "description": "Current status of the evaluation request.",
+          "x-ms-summary": "Request Status"
+        },
+        "dateLimiteCommentaires": {
+          "type": "string",
+          "description": "Deadline for public comments.",
+          "x-ms-summary": "Comment Deadline"
+        }
+      }
+    },
+    "InnovateursResponse": {
+      "type": "object",
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "description": "Name of the scraped table.",
+          "x-ms-summary": "Table Name"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of items returned.",
+          "x-ms-summary": "Count"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the data was scraped.",
+          "x-ms-summary": "Scraped At"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of innovator drugs under evaluation.",
+          "items": {
+            "$ref": "#/definitions/InnovateurItem"
+          }
+        }
+      }
+    },
+    "AutreTravailItem": {
+      "type": "object",
+      "properties": {
+        "projet": {
+          "type": "string",
+          "description": "Project name.",
+          "x-ms-summary": "Project"
+        },
+        "sujet": {
+          "type": "string",
+          "description": "Subject of the work item.",
+          "x-ms-summary": "Subject"
+        },
+        "debutTravaux": {
+          "type": "string",
+          "description": "Date when the work started.",
+          "x-ms-summary": "Work Start Date"
+        },
+        "dateLimiteCommentaires": {
+          "type": "string",
+          "description": "Deadline for public comments.",
+          "x-ms-summary": "Comment Deadline"
+        }
+      }
+    },
+    "AutresTravauxResponse": {
+      "type": "object",
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "description": "Name of the scraped table.",
+          "x-ms-summary": "Table Name"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of items returned.",
+          "x-ms-summary": "Count"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the data was scraped.",
+          "x-ms-summary": "Scraped At"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of other work items.",
+          "items": {
+            "$ref": "#/definitions/AutreTravailItem"
+          }
+        }
+      }
+    },
+    "SollicitationItem": {
+      "type": "object",
+      "properties": {
+        "nomCommercial": {
+          "type": "string",
+          "description": "Commercial name of the drug.",
+          "x-ms-summary": "Commercial Name"
+        },
+        "denominationCommune": {
+          "type": "string",
+          "description": "Common denomination (active ingredient).",
+          "x-ms-summary": "Common Denomination"
+        },
+        "nomFabricant": {
+          "type": "string",
+          "description": "Manufacturer name.",
+          "x-ms-summary": "Manufacturer"
+        },
+        "indication": {
+          "type": "string",
+          "description": "Therapeutic indication.",
+          "x-ms-summary": "Indication"
+        },
+        "typeDemande": {
+          "type": "string",
+          "description": "Type of request.",
+          "x-ms-summary": "Request Type"
+        },
+        "statutDemande": {
+          "type": "string",
+          "description": "Status of the solicitation.",
+          "x-ms-summary": "Request Status"
+        },
+        "dateSollicitation": {
+          "type": "string",
+          "description": "Solicitation date.",
+          "x-ms-summary": "Solicitation Date"
+        }
+      }
+    },
+    "SollicitationsResponse": {
+      "type": "object",
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "description": "Name of the scraped table.",
+          "x-ms-summary": "Table Name"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of items returned.",
+          "x-ms-summary": "Count"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the data was scraped.",
+          "x-ms-summary": "Scraped At"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of solicitations.",
+          "items": {
+            "$ref": "#/definitions/SollicitationItem"
+          }
+        }
+      }
+    },
+    "ProduitEvalueItem": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "Evaluation date.",
+          "x-ms-summary": "Date"
+        },
+        "nomCommercialProjet": {
+          "type": "string",
+          "description": "Commercial name or project name.",
+          "x-ms-summary": "Commercial Name / Project"
+        },
+        "nomCommercialProjetLink": {
+          "type": "string",
+          "description": "Link to the INESSS evaluation detail page (absolute URL), or empty if none.",
+          "x-ms-summary": "Detail Link"
+        },
+        "denominationCommuneSujet": {
+          "type": "string",
+          "description": "Common denomination or subject.",
+          "x-ms-summary": "Common Denomination / Subject"
+        },
+        "denominationCommuneSujetLink": {
+          "type": "string",
+          "description": "Link to the INESSS evaluation detail page (absolute URL), or empty if none.",
+          "x-ms-summary": "Denomination Link"
+        },
+        "fabricant": {
+          "type": "string",
+          "description": "Manufacturer name.",
+          "x-ms-summary": "Manufacturer"
+        },
+        "recommandationInesss": {
+          "type": "string",
+          "description": "INESSS recommendation.",
+          "x-ms-summary": "INESSS Recommendation"
+        },
+        "decisionMinistre": {
+          "type": "string",
+          "description": "Minister's decision.",
+          "x-ms-summary": "Minister Decision"
+        }
+      }
+    },
+    "ProduitsEvaluesResponse": {
+      "type": "object",
+      "properties": {
+        "tableName": {
+          "type": "string",
+          "description": "Name of the scraped table.",
+          "x-ms-summary": "Table Name"
+        },
+        "page": {
+          "type": "integer",
+          "description": "Current page number.",
+          "x-ms-summary": "Page"
+        },
+        "totalResults": {
+          "type": "integer",
+          "description": "Total number of evaluated products available.",
+          "x-ms-summary": "Total Results"
+        },
+        "resultsPerPage": {
+          "type": "integer",
+          "description": "Number of results per page (30).",
+          "x-ms-summary": "Results Per Page"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of items returned on this page.",
+          "x-ms-summary": "Count"
+        },
+        "scrapedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the data was scraped.",
+          "x-ms-summary": "Scraped At"
+        },
+        "items": {
+          "type": "array",
+          "description": "List of evaluated products.",
+          "items": {
+            "$ref": "#/definitions/ProduitEvalueItem"
+          }
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Error code for programmatic handling.",
+              "x-ms-summary": "Error Code"
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable error message.",
+              "x-ms-summary": "Error Message"
+            }
+          }
+        }
+      }
+    }
+  }
+}

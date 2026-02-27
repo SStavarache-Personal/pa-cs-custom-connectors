@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#003d6b",
+    "capabilities": [],
+    "publisher": "Custom",
+    "stackOwner": "",
+    "scriptOperations": [
+      "GetGeneriques",
+      "GetInnovateurs",
+      "GetAutresTravaux",
+      "GetSollicitations",
+      "GetProduitsEvalues"
+    ]
+  }
+}
