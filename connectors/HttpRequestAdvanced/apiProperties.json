@@ -6,7 +6,8 @@
     "publisher": "Your Organization Name",
     "stackOwner": "",
     "scriptOperations": [
-      "ExecuteHttpRequest"
+      "ExecuteHttpRequest",
+      "ExecuteBatchHttpRequests"
     ]
   }
 }

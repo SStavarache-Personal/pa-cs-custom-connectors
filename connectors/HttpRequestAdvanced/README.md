@@ -19,6 +19,7 @@ Enhanced HTTP request connector for Power Automate with comprehensive redirect h
 - ✅ **SSL Validation**: Control SSL certificate validation
 - ✅ **Redirect Loop Detection**: Prevents infinite redirect cycles
 - ✅ **Detailed Response**: Returns status, headers, body, redirect count, final URL
+- ✅ **Batch Requests**: Execute multiple HTTP requests in parallel and combine results
 
 ### Advanced Features
 - **Redirect Control**: Choose whether to follow redirects and set maximum redirect count
@@ -26,6 +27,16 @@ Enhanced HTTP request connector for Power Automate with comprehensive redirect h
 - **Authentication**: Built-in support for Basic and Bearer token authentication
 - **Content Type Flexibility**: Specify content type explicitly or via headers
 - **Response Metadata**: Get complete response information including all headers and redirect history
+
+## Operations
+
+### 1. Execute HTTP Request (`ExecuteHttpRequest`)
+
+Execute a single HTTP request with full control over method, headers, query parameters, body, and redirect handling.
+
+### 2. Execute Batch HTTP Requests (`ExecuteBatchHttpRequests`)
+
+Execute multiple HTTP requests in parallel and combine all response bodies into a single results array. Designed for combining paginated API results into one dataset, but works for any scenario where multiple requests need to be made and results merged.
 
 ## Use Cases
 
@@ -35,10 +46,14 @@ Enhanced HTTP request connector for Power Automate with comprehensive redirect h
 4. **OAuth Flows**: Handle redirect-based authentication flows
 5. **Testing & Debugging**: Get detailed information about HTTP interactions
 6. **Legacy System Integration**: Work with older APIs that use extensive redirects
+7. **Paginated API Aggregation**: Combine results from multiple pages into a single array
+8. **Multi-Endpoint Data Collection**: Fetch data from multiple endpoints simultaneously
 
 ## Input Parameters
 
-### Required Parameters
+### Execute HTTP Request
+
+#### Required Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
@@ -62,9 +77,32 @@ Enhanced HTTP request connector for Power Automate with comprehensive redirect h
 | `contentType` | string | - | Content-Type header (overrides Content-Type in headers) |
 | `validateSSL` | boolean | `true` | Whether to validate SSL certificates |
 
+### Execute Batch HTTP Requests
+
+#### Required Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `requests` | array | Array of request objects, each with `url` (string, required), `method` (string, required), `headers` (JSON string, optional), `queryParameters` (JSON string, optional), `body` (string, optional) |
+
+#### Optional Parameters (Shared)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `resultsPath` | string | - | JSON property name (dot-notation) to extract from each response and merge, e.g., `items` or `data.results`. If omitted, the entire response body is added to the results array. |
+| `authenticationType` | string | `None` | Authentication type applied to all requests: None, Basic, Bearer |
+| `username` | string | - | Username for Basic authentication |
+| `password` | string | - | Password for Basic authentication |
+| `bearerToken` | string | - | Token for Bearer authentication |
+| `followRedirects` | boolean | `true` | Whether to follow HTTP redirects |
+| `maxRedirects` | integer | `10` | Max redirects per request (0-50) |
+| `timeoutSeconds` | integer | `100` | Timeout per individual request in seconds |
+| `contentType` | string | - | Default Content-Type header for all requests |
+| `validateSSL` | boolean | `true` | Whether to validate SSL certificates |
+
 ## Output Schema
 
-The connector returns a JSON object with the following structure:
+### Execute HTTP Request Response
 
 ```json
 {
@@ -94,7 +132,36 @@ The connector returns a JSON object with the following structure:
 | `finalUrl` | string | Final URL after following all redirects |
 | `isSuccess` | boolean | True if status code is 2xx |
 
+### Execute Batch HTTP Requests Response
+
+```json
+{
+  "totalRequests": 3,
+  "successCount": 3,
+  "failureCount": 0,
+  "totalResults": 75,
+  "results": [
+    { "id": 1, "name": "Item 1" },
+    { "id": 2, "name": "Item 2" }
+  ],
+  "errors": []
+}
+```
+
+#### Output Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `totalRequests` | integer | Total number of requests submitted |
+| `successCount` | integer | Number of requests that returned 2xx |
+| `failureCount` | integer | Number of requests that failed |
+| `totalResults` | integer | Total items in the combined results array |
+| `results` | array | Combined results from all successful responses |
+| `errors` | array | Details of any failed requests (each with `requestIndex`, `url`, `statusCode`, `error`) |
+
 ## Usage Examples
+
+### Execute HTTP Request Examples
 
 ### Example 1: Simple GET Request
 
@@ -202,6 +269,61 @@ The connector returns a JSON object with the following structure:
 }
 ```
 
+### Execute Batch HTTP Requests Examples
+
+### Example 11: Combine Paginated Results
+
+```json
+{
+  "requests": [
+    { "url": "https://api.example.com/items?page=1", "method": "GET" },
+    { "url": "https://api.example.com/items?page=2", "method": "GET" },
+    { "url": "https://api.example.com/items?page=3", "method": "GET" }
+  ],
+  "resultsPath": "items",
+  "authenticationType": "Bearer",
+  "bearerToken": "your-access-token-here"
+}
+```
+
+### Example 12: Batch GET from Multiple Endpoints
+
+```json
+{
+  "requests": [
+    { "url": "https://api.example.com/users", "method": "GET" },
+    { "url": "https://api.example.com/orders", "method": "GET" },
+    { "url": "https://api.example.com/products", "method": "GET" }
+  ],
+  "authenticationType": "Basic",
+  "username": "admin",
+  "password": "secret123"
+}
+```
+
+### Example 13: Batch with Per-Request Headers and Query Parameters
+
+```json
+{
+  "requests": [
+    {
+      "url": "https://api.example.com/search",
+      "method": "GET",
+      "queryParameters": "{\"q\":\"power automate\",\"page\":\"1\"}",
+      "headers": "{\"X-Custom-Header\":\"value1\"}"
+    },
+    {
+      "url": "https://api.example.com/search",
+      "method": "GET",
+      "queryParameters": "{\"q\":\"power automate\",\"page\":\"2\"}",
+      "headers": "{\"X-Custom-Header\":\"value2\"}"
+    }
+  ],
+  "resultsPath": "data.results",
+  "timeoutSeconds": 60
+}
+```
+
 ## Redirect Handling
 
 The connector automatically handles the following HTTP redirect status codes:
@@ -261,6 +383,10 @@ The connector returns structured error responses for various failure scenarios:
 | `REQUEST_TIMEOUT` | Request exceeded the specified timeout |
 | `HTTP_REQUEST_FAILED` | HTTP request failed (network error, DNS failure, etc.) |
 | `INTERNAL_ERROR` | Unexpected error occurred during execution |
+| `MISSING_REQUESTS` | Batch requests array is missing or empty |
+| `BATCH_TOO_LARGE` | Batch size exceeds maximum of 20 requests |
+| `INVALID_REQUEST_ITEM` | A request item in the batch array is not a valid object |
+| `BATCH_ERROR` | Unexpected error during batch execution |
 
 ### Timeout Handling
 
@@ -406,6 +532,12 @@ For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](../../docs/DEPLO
 
 ## Version History
 
+- **1.1.0** (2026-02-26): Batch HTTP Requests
+  - New `ExecuteBatchHttpRequests` operation for parallel multi-request execution
+  - Combine paginated or multi-endpoint results into a single array
+  - Configurable `resultsPath` with dot-notation for nested JSON extraction
+  - Shared authentication settings across all batch requests
+  - Up to 20 parallel requests per batch
 - **1.0.0** (2026-02-02): Initial release
   - All HTTP methods support
   - Automatic redirect handling (301, 302, 303, 307, 308)

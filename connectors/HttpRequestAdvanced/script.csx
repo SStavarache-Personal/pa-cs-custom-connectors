@@ -35,6 +35,7 @@ public class Script : ScriptBase
         return operationId switch
         {
             "ExecuteHttpRequest" => await HandleExecuteHttpRequestAsync(),
+            "ExecuteBatchHttpRequests" => await HandleExecuteBatchHttpRequestsAsync(),
             _ => CreateErrorResponse(
                 HttpStatusCode.BadRequest,
                 $"Unknown operation: {operationId}",
@@ -183,6 +184,323 @@ public class Script : ScriptBase
                 $"An unexpected error occurred: {ex.Message}",
                 "INTERNAL_ERROR"
             );
+        }
+    }
+
+    // ========================================================================
+    // BATCH OPERATION HANDLER
+    // ========================================================================
+
+    /// <summary>
+    /// Handles the ExecuteBatchHttpRequests operation.
+    /// Executes multiple HTTP requests in parallel and combines results into a single array.
+    /// </summary>
+    private async Task<HttpResponseMessage> HandleExecuteBatchHttpRequestsAsync()
+    {
+        const int MAX_BATCH_SIZE = 20;
+
+        try
+        {
+            // Read request body
+            string content = await this.Context.Request.Content
+                .ReadAsStringAsync()
+                .ConfigureAwait(false);
+
+            JObject requestBody;
+            try
+            {
+                requestBody = JObject.Parse(content);
+            }
+            catch (JsonException ex)
+            {
+                return CreateErrorResponse(
+                    HttpStatusCode.BadRequest,
+                    $"Invalid JSON in request body: {ex.Message}",
+                    "INVALID_JSON"
+                );
+            }
+
+            // Extract requests array
+            JArray requestsArray = requestBody["requests"] as JArray;
+            if (requestsArray == null || requestsArray.Count == 0)
+            {
+                return CreateErrorResponse(
+                    HttpStatusCode.BadRequest,
+                    "The 'requests' array is required and must contain at least one request.",
+                    "MISSING_REQUESTS"
+                );
+            }
+
+            if (requestsArray.Count > MAX_BATCH_SIZE)
+            {
+                return CreateErrorResponse(
+                    HttpStatusCode.BadRequest,
+                    $"Batch size exceeds the maximum of {MAX_BATCH_SIZE} requests.",
+                    "BATCH_TOO_LARGE"
+                );
+            }
+
+            // Extract shared settings
+            string resultsPath = requestBody["resultsPath"]?.ToString();
+            bool followRedirects = requestBody["followRedirects"]?.ToObject<bool>() ?? true;
+            int maxRedirects = requestBody["maxRedirects"]?.ToObject<int>() ?? DEFAULT_MAX_REDIRECTS;
+            int timeoutSeconds = requestBody["timeoutSeconds"]?.ToObject<int>() ?? DEFAULT_TIMEOUT_SECONDS;
+            string authenticationType = requestBody["authenticationType"]?.ToString() ?? "None";
+            string username = requestBody["username"]?.ToString();
+            string password = requestBody["password"]?.ToString();
+            string bearerToken = requestBody["bearerToken"]?.ToString();
+            string contentType = requestBody["contentType"]?.ToString();
+            bool validateSSL = requestBody["validateSSL"]?.ToObject<bool>() ?? true;
+
+            // Validate max redirects
+            if (maxRedirects < 0 || maxRedirects > MAX_ALLOWED_REDIRECTS)
+            {
+                return CreateErrorResponse(
+                    HttpStatusCode.BadRequest,
+                    $"Max redirects must be between 0 and {MAX_ALLOWED_REDIRECTS}.",
+                    "INVALID_MAX_REDIRECTS"
+                );
+            }
+
+            // Build tasks for parallel execution
+            var tasks = new List<Task<BatchRequestResult>>();
+
+            for (int i = 0; i < requestsArray.Count; i++)
+            {
+                JObject reqItem = requestsArray[i] as JObject;
+                if (reqItem == null)
+                {
+                    return CreateErrorResponse(
+                        HttpStatusCode.BadRequest,
+                        $"Request at index {i} is not a valid object.",
+                        "INVALID_REQUEST_ITEM"
+                    );
+                }
+
+                string url = reqItem["url"]?.ToString();
+                string method = reqItem["method"]?.ToString()?.ToUpperInvariant() ?? "GET";
+                string headersJson = reqItem["headers"]?.ToString();
+                string queryParamsJson = reqItem["queryParameters"]?.ToString();
+                string bodyContent = reqItem["body"]?.ToString();
+
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    return CreateErrorResponse(
+                        HttpStatusCode.BadRequest,
+                        $"Request at index {i} is missing the required 'url' field.",
+                        "MISSING_URL"
+                    );
+                }
+
+                if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+                {
+                    return CreateErrorResponse(
+                        HttpStatusCode.BadRequest,
+                        $"Request at index {i} has an invalid URL format: {url}",
+                        "INVALID_URL"
+                    );
+                }
+
+                // Parse headers per request
+                Dictionary<string, string> headers = ParseJsonDictionary(headersJson, $"headers[{i}]");
+
+                // Build URL with query params
+                string finalUrl = BuildUrlWithQueryParams(url, queryParamsJson);
+
+                int index = i;
+                tasks.Add(ExecuteBatchItemAsync(
+                    index,
+                    finalUrl,
+                    method,
+                    headers,
+                    bodyContent,
+                    followRedirects,
+                    maxRedirects,
+                    timeoutSeconds,
+                    authenticationType,
+                    username,
+                    password,
+                    bearerToken,
+                    contentType
+                ));
+            }
+
+            // Execute all requests in parallel
+            BatchRequestResult[] results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+            // Combine results
+            JArray combinedResults = new JArray();
+            JArray errors = new JArray();
+            int successCount = 0;
+            int failureCount = 0;
+
+            foreach (var result in results)
+            {
+                if (result.IsSuccess)
+                {
+                    successCount++;
+
+                    // Parse the response body and extract results
+                    JToken parsedBody = null;
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(result.Body))
+                        {
+                            parsedBody = JToken.Parse(result.Body);
+                        }
+                    }
+                    catch (JsonException)
+                    {
+                        // Body is not valid JSON; wrap as string value
+                        parsedBody = new JValue(result.Body);
+                    }
+
+                    if (parsedBody != null)
+                    {
+                        JToken extractedData = parsedBody;
+
+                        // Navigate to resultsPath if specified
+                        if (!string.IsNullOrWhiteSpace(resultsPath))
+                        {
+                            // Support dot-notation paths like "data.items"
+                            string[] pathSegments = resultsPath.Split('.');
+                            foreach (string segment in pathSegments)
+                            {
+                                if (extractedData is JObject obj && obj[segment] != null)
+                                {
+                                    extractedData = obj[segment];
+                                }
+                                else
+                                {
+                                    extractedData = null;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (extractedData is JArray arr)
+                        {
+                            // Merge array items into combined results
+                            foreach (JToken item in arr)
+                            {
+                                combinedResults.Add(item);
+                            }
+                        }
+                        else if (extractedData != null)
+                        {
+                            // Add the single value/object as-is
+                            combinedResults.Add(extractedData);
+                        }
+                    }
+                }
+                else
+                {
+                    failureCount++;
+                    errors.Add(new JObject
+                    {
+                        ["requestIndex"] = result.RequestIndex,
+                        ["url"] = result.Url,
+                        ["statusCode"] = result.StatusCode,
+                        ["error"] = result.ErrorMessage
+                    });
+                }
+            }
+
+            // Build response
+            JObject responseBody = new JObject
+            {
+                ["totalRequests"] = results.Length,
+                ["successCount"] = successCount,
+                ["failureCount"] = failureCount,
+                ["totalResults"] = combinedResults.Count,
+                ["results"] = combinedResults,
+                ["errors"] = errors
+            };
+
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = CreateJsonContent(responseBody.ToString())
+            };
+        }
+        catch (Exception ex)
+        {
+            return CreateErrorResponse(
+                HttpStatusCode.InternalServerError,
+                $"Batch execution failed: {ex.Message}",
+                "BATCH_ERROR"
+            );
+        }
+    }
+
+    /// <summary>
+    /// Executes a single request within a batch and returns the result.
+    /// </summary>
+    private async Task<BatchRequestResult> ExecuteBatchItemAsync(
+        int index,
+        string url,
+        string method,
+        Dictionary<string, string> headers,
+        string body,
+        bool followRedirects,
+        int maxRedirects,
+        int timeoutSeconds,
+        string authenticationType,
+        string username,
+        string password,
+        string bearerToken,
+        string contentType
+    )
+    {
+        try
+        {
+            HttpRequestResult result = await ExecuteRequestWithRedirectsAsync(
+                url,
+                method,
+                headers,
+                body,
+                followRedirects,
+                maxRedirects,
+                timeoutSeconds,
+                authenticationType,
+                username,
+                password,
+                bearerToken,
+                contentType
+            ).ConfigureAwait(false);
+
+            if (result.IsSuccess)
+            {
+                return new BatchRequestResult
+                {
+                    RequestIndex = index,
+                    Url = url,
+                    IsSuccess = true,
+                    StatusCode = (int)result.StatusCode,
+                    Body = result.Body
+                };
+            }
+            else
+            {
+                return new BatchRequestResult
+                {
+                    RequestIndex = index,
+                    Url = url,
+                    IsSuccess = false,
+                    StatusCode = (int)result.StatusCode,
+                    ErrorMessage = $"HTTP {(int)result.StatusCode} {result.StatusCode}"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            return new BatchRequestResult
+            {
+                RequestIndex = index,
+                Url = url,
+                IsSuccess = false,
+                StatusCode = 0,
+                ErrorMessage = ex.Message
+            };
         }
     }
 
@@ -582,5 +900,18 @@ public class Script : ScriptBase
         public int RedirectCount { get; set; }
         public string FinalUrl { get; set; }
         public bool IsSuccess { get; set; }
+    }
+
+    /// <summary>
+    /// Represents the result of a single request within a batch.
+    /// </summary>
+    private class BatchRequestResult
+    {
+        public int RequestIndex { get; set; }
+        public string Url { get; set; }
+        public bool IsSuccess { get; set; }
+        public int StatusCode { get; set; }
+        public string Body { get; set; }
+        public string ErrorMessage { get; set; }
     }
 }
