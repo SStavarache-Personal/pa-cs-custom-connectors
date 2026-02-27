@@ -8,11 +8,11 @@ Each connector has its own folder:
 
 ```
 connectors/
-├── ConnectorName/
-│   ├── README.md                    # Documentation
-│   ├── apiDefinition.swagger.yaml   # OpenAPI 2.0 definition
-│   ├── script.csx                   # C# custom code
-│   └── icon.png                     # Optional icon
+|-- ConnectorName/
+|   |-- README.md                    # Documentation
+|   |-- apiDefinition.swagger.yaml   # OpenAPI 2.0 definition
+|   |-- script.csx                   # C# custom code
+|   `-- icon.png                     # Optional icon
 ```
 
 ## Creating a New Connector
@@ -26,7 +26,9 @@ connectors/
 
 | Connector | Description | Status |
 |-----------|-------------|--------|
-| [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | ✅ Ready |
+| [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | Ready |
+| [DatasetSqlQuery](DatasetSqlQuery/) | In-script SQL query execution over user-provided JSON/CSV datasets with joins, aggregates, windows, and multiple output modes | Ready |
+| [InessMedicaments](InessMedicaments/) | Scrapes INESSS medication evaluation tables (génériques, innovateurs, autres travaux, sollicitations, produits évalués with pagination) | Ready |
 
 ---
 
