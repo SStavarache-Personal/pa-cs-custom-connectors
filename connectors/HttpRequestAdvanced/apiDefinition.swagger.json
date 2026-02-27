@@ -151,7 +151,11 @@
                 },
                 "body": {
                   "type": "string",
-                  "description": "Response body content"
+                  "description": "Response body content (Base64-encoded if binary)"
+                },
+                "isBase64Encoded": {
+                  "type": "boolean",
+                  "description": "Whether the body content is Base64-encoded (true for binary content like ZIP, PDF, images)"
                 },
                 "redirectCount": {
                   "type": "integer",

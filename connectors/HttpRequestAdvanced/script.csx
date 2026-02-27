@@ -25,6 +25,48 @@ public class Script : ScriptBase
     private const int DEFAULT_TIMEOUT_SECONDS = 100;
     private const int MAX_ALLOWED_REDIRECTS = 50;
 
+    // Binary content type lists (static to avoid repeated allocations)
+    private static readonly HashSet<string> BinaryContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/octet-stream",
+        "application/pdf",
+        "application/gzip",
+        "application/x-gzip",
+        "application/x-tar",
+        "application/x-7z-compressed",
+        "application/x-rar-compressed",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "application/vnd.ms-powerpoint",
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "image/jpeg",
+        "image/png",
+        "image/gif",
+        "image/bmp",
+        "image/webp",
+        "image/tiff",
+        "audio/mpeg",
+        "audio/ogg",
+        "audio/wav",
+        "video/mp4",
+        "video/mpeg",
+        "video/quicktime",
+        "video/x-msvideo",
+        "font/woff",
+        "font/woff2",
+        "font/ttf",
+        "font/otf"
+    };
+
+    private static readonly HashSet<string> TextContentTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/svg+xml" // SVG is XML-based text
+    };
+
     /// <summary>
     /// Entry point for the custom connector.
     /// </summary>
@@ -149,6 +191,7 @@ public class Script : ScriptBase
                 ["statusDescription"] = result.StatusCode.ToString(),
                 ["headers"] = JObject.FromObject(result.Headers),
                 ["body"] = result.Body,
+                ["isBase64Encoded"] = result.IsBase64Encoded,
                 ["redirectCount"] = result.RedirectCount,
                 ["finalUrl"] = result.FinalUrl,
                 ["isSuccess"] = result.IsSuccess
@@ -610,19 +653,37 @@ public class Script : ScriptBase
                 break;
             }
 
-            // Read response content
-            string responseBody = await response.Content
-                .ReadAsStringAsync()
-                .ConfigureAwait(false);
-
-            // Extract response headers
+            // Extract response headers first (needed to check content type)
             Dictionary<string, string> responseHeaders = ExtractHeaders(response);
+
+            // Check if content is binary
+            bool isBinary = IsBinaryContent(responseHeaders);
+            string responseBody;
+            bool isBase64Encoded = false;
+
+            if (isBinary)
+            {
+                // Read as bytes and encode as Base64 for binary content
+                byte[] responseBytes = await response.Content
+                    .ReadAsByteArrayAsync()
+                    .ConfigureAwait(false);
+                responseBody = Convert.ToBase64String(responseBytes);
+                isBase64Encoded = true;
+            }
+            else
+            {
+                // Read as string for text content
+                responseBody = await response.Content
+                    .ReadAsStringAsync()
+                    .ConfigureAwait(false);
+            }
 
             return new HttpRequestResult
             {
                 StatusCode = response.StatusCode,
                 Headers = responseHeaders,
                 Body = responseBody,
+                IsBase64Encoded = isBase64Encoded,
                 RedirectCount = redirectCount,
                 FinalUrl = currentUrl,
                 IsSuccess = response.IsSuccessStatusCode
@@ -808,6 +869,43 @@ public class Script : ScriptBase
     }
 
     /// <summary>
+    /// Determines if the response content is binary based on Content-Type header.
+    /// </summary>
+    private bool IsBinaryContent(Dictionary<string, string> headers)
+    {
+        if (!headers.TryGetValue("Content-Type", out string contentType))
+        {
+            return false;
+        }
+
+        // Normalize content type (remove charset and other parameters)
+        string normalizedType = contentType.Split(';')[0].Trim().ToLowerInvariant();
+
+        // Check if it's explicitly a text type (takes precedence)
+        if (TextContentTypes.Contains(normalizedType))
+        {
+            return false;
+        }
+
+        // Check if content type matches any binary type
+        if (BinaryContentTypes.Contains(normalizedType))
+        {
+            return true;
+        }
+
+        // Check for common binary prefixes (excluding known text-based formats already checked)
+        if (normalizedType.StartsWith("image/") ||
+            normalizedType.StartsWith("audio/") ||
+            normalizedType.StartsWith("video/") ||
+            normalizedType.StartsWith("font/"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Extracts headers from an HTTP response.
     /// </summary>
     private Dictionary<string, string> ExtractHeaders(HttpResponseMessage response)
@@ -897,6 +995,7 @@ public class Script : ScriptBase
         public HttpStatusCode StatusCode { get; set; }
         public Dictionary<string, string> Headers { get; set; }
         public string Body { get; set; }
+        public bool IsBase64Encoded { get; set; }
         public int RedirectCount { get; set; }
         public string FinalUrl { get; set; }
         public bool IsSuccess { get; set; }
