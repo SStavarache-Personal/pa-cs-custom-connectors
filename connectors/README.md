@@ -29,6 +29,7 @@ connectors/
 | [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | Ready |
 | [DatasetSqlQuery](DatasetSqlQuery/) | In-script SQL query execution over user-provided JSON/CSV datasets with joins, aggregates, windows, and multiple output modes | Ready |
 | [InessMedicaments](InessMedicaments/) | Scrapes INESSS medication evaluation tables (génériques, innovateurs, autres travaux, sollicitations, produits évalués with pagination) | Ready |
+| [RegexExtractor](RegexExtractor/) | Extract, test, and replace text using regular expressions with support for named groups and common regex options | Ready |
 
 ---
 

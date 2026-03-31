@@ -1,0 +1,381 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Regex Extractor",
+    "description": "Extract, match, and replace text using regular expressions. Supports named groups, multiple matches, and common regex options.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector",
+      "email": "support@example.com"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "paths": {
+    "/extract": {
+      "post": {
+        "operationId": "ExtractMatches",
+        "summary": "Extract regex matches",
+        "description": "Apply a regex pattern to the input text and return all matches with captured groups.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ExtractRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matches extracted successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExtractResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request or regex pattern.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/test": {
+      "post": {
+        "operationId": "TestPattern",
+        "summary": "Test regex pattern",
+        "description": "Test whether a regex pattern matches the input text. Returns a boolean result.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TestRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test completed.",
+            "schema": {
+              "$ref": "#/definitions/TestResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request or regex pattern.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/extract-french-dates": {
+      "post": {
+        "operationId": "ExtractFrenchDates",
+        "summary": "Extract French dates",
+        "description": "Extract dates written in French format (e.g. '1er avril 2026', '4 mai 2023') from the input text and return them with ISO 8601 equivalents.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FrenchDateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dates extracted successfully.",
+            "schema": {
+              "$ref": "#/definitions/FrenchDateResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/replace": {
+      "post": {
+        "operationId": "ReplaceMatches",
+        "summary": "Replace regex matches",
+        "description": "Replace occurrences of a regex pattern in the input text with a replacement string. Supports backreferences ($1, ${name}).",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ReplaceRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Replacement completed.",
+            "schema": {
+              "$ref": "#/definitions/ReplaceResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request or regex pattern.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ExtractRequest": {
+      "type": "object",
+      "required": ["text", "pattern"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The input text to search.",
+          "x-ms-summary": "Text",
+          "x-ms-visibility": "important"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "The regular expression pattern. Supports named groups (?<name>...).",
+          "x-ms-summary": "Pattern",
+          "x-ms-visibility": "important"
+        },
+        "options": {
+          "type": "string",
+          "description": "Comma-separated regex options: IgnoreCase, Multiline, Singleline, ExplicitCapture. Default: none.",
+          "x-ms-summary": "Options",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "ExtractResponse": {
+      "type": "object",
+      "properties": {
+        "matchCount": {
+          "type": "integer",
+          "description": "Total number of matches found.",
+          "x-ms-summary": "Match Count"
+        },
+        "matches": {
+          "type": "array",
+          "description": "List of matches.",
+          "items": {
+            "$ref": "#/definitions/MatchResult"
+          }
+        }
+      }
+    },
+    "MatchResult": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "description": "The full matched text.",
+          "x-ms-summary": "Value"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Zero-based start position of the match.",
+          "x-ms-summary": "Index"
+        },
+        "groups": {
+          "type": "object",
+          "description": "Named and numbered capture groups as key-value pairs.",
+          "x-ms-summary": "Groups",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TestRequest": {
+      "type": "object",
+      "required": ["text", "pattern"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The input text to test against.",
+          "x-ms-summary": "Text",
+          "x-ms-visibility": "important"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "The regular expression pattern to test.",
+          "x-ms-summary": "Pattern",
+          "x-ms-visibility": "important"
+        },
+        "options": {
+          "type": "string",
+          "description": "Comma-separated regex options: IgnoreCase, Multiline, Singleline, ExplicitCapture. Default: none.",
+          "x-ms-summary": "Options",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "TestResponse": {
+      "type": "object",
+      "properties": {
+        "isMatch": {
+          "type": "boolean",
+          "description": "Whether the pattern matched the text.",
+          "x-ms-summary": "Is Match"
+        },
+        "matchedValue": {
+          "type": "string",
+          "description": "The first matched value, or null if no match.",
+          "x-ms-summary": "Matched Value"
+        }
+      }
+    },
+    "ReplaceRequest": {
+      "type": "object",
+      "required": ["text", "pattern", "replacement"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The input text to perform replacements on.",
+          "x-ms-summary": "Text",
+          "x-ms-visibility": "important"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "The regular expression pattern to match.",
+          "x-ms-summary": "Pattern",
+          "x-ms-visibility": "important"
+        },
+        "replacement": {
+          "type": "string",
+          "description": "The replacement string. Use $1, $2 or ${name} for backreferences.",
+          "x-ms-summary": "Replacement",
+          "x-ms-visibility": "important"
+        },
+        "options": {
+          "type": "string",
+          "description": "Comma-separated regex options: IgnoreCase, Multiline, Singleline, ExplicitCapture. Default: none.",
+          "x-ms-summary": "Options",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "ReplaceResponse": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "type": "string",
+          "description": "The text after replacements.",
+          "x-ms-summary": "Result"
+        },
+        "replacementCount": {
+          "type": "integer",
+          "description": "Number of replacements made.",
+          "x-ms-summary": "Replacement Count"
+        }
+      }
+    },
+    "FrenchDateRequest": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The input text containing French dates to extract.",
+          "x-ms-summary": "Text",
+          "x-ms-visibility": "important"
+        }
+      }
+    },
+    "FrenchDateResponse": {
+      "type": "object",
+      "properties": {
+        "dateCount": {
+          "type": "integer",
+          "description": "Number of French dates found.",
+          "x-ms-summary": "Date Count"
+        },
+        "dates": {
+          "type": "array",
+          "description": "List of extracted dates.",
+          "items": {
+            "$ref": "#/definitions/FrenchDateResult"
+          }
+        }
+      }
+    },
+    "FrenchDateResult": {
+      "type": "object",
+      "properties": {
+        "original": {
+          "type": "string",
+          "description": "The original matched date text.",
+          "x-ms-summary": "Original"
+        },
+        "day": {
+          "type": "integer",
+          "description": "Day of the month.",
+          "x-ms-summary": "Day"
+        },
+        "month": {
+          "type": "string",
+          "description": "French month name (lowercase).",
+          "x-ms-summary": "Month"
+        },
+        "year": {
+          "type": "integer",
+          "description": "Four-digit year.",
+          "x-ms-summary": "Year"
+        },
+        "iso": {
+          "type": "string",
+          "description": "ISO 8601 date (yyyy-MM-dd).",
+          "x-ms-summary": "ISO Date"
+        },
+        "index": {
+          "type": "integer",
+          "description": "Zero-based position in the input text.",
+          "x-ms-summary": "Index"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Error code for programmatic handling.",
+              "x-ms-summary": "Error Code"
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable error description.",
+              "x-ms-summary": "Error Message"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#4B0082",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "ExtractMatches",
+      "TestPattern",
+      "ReplaceMatches",
+      "ExtractFrenchDates"
+    ]
+  }
+}
