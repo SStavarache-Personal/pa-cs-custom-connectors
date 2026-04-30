@@ -298,8 +298,13 @@ public class Script : ScriptBase
     {
         return new HttpResponseMessage(statusCode)
         {
-            Content = CreateJsonContent(body.ToString())
+            Content = CreateJsonStringContent(body.ToString())
         };
+    }
+
+    private static StringContent CreateJsonStringContent(string serializedJson)
+    {
+        return new StringContent(serializedJson, Encoding.UTF8, "application/json");
     }
 
     private static HttpResponseMessage CreateErrorResponse(
