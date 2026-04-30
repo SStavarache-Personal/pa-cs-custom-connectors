@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#8B5CF6",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "RenderEmailTemplate"
+    ]
+  }
+}
