@@ -1,0 +1,1067 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Health Canada LNHPD",
+    "description": "Query the Licensed Natural Health Products Database and run bulk-friendly extractions.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector",
+      "email": "support@example.com"
+    }
+  },
+  "host": "health-products.canada.ca",
+  "basePath": "/api/natural-licences",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/medicinalingredient": {
+      "get": {
+        "operationId": "GetMedicinalIngredients",
+        "summary": "Get medicinal ingredients",
+        "description": "Retrieves medicinal ingredient records by product identifier or page.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdOptional"
+          },
+          {
+            "$ref": "#/parameters/PageOptional"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicinal ingredient records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/MedicinalIngredientResponse"
+            }
+          }
+        }
+      }
+    },
+    "/nonmedicinalingredient": {
+      "get": {
+        "operationId": "GetNonMedicinalIngredients",
+        "summary": "Get non-medicinal ingredients",
+        "description": "Retrieves non-medicinal ingredient records by product identifier.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdRequired"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Non-medicinal ingredient records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/NonMedicinalIngredientResponse"
+            }
+          }
+        }
+      }
+    },
+    "/productdose": {
+      "get": {
+        "operationId": "GetProductDoses",
+        "summary": "Get product doses",
+        "description": "Retrieves product dose records by product identifier.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdRequired"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product dose records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductDoseResponse"
+            }
+          }
+        }
+      }
+    },
+    "/productlicence": {
+      "get": {
+        "operationId": "GetProductLicences",
+        "summary": "Get product licences",
+        "description": "Retrieves product licence records by licence number.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LicenceNumberRequired"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product licence records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductLicenceResponse"
+            }
+          }
+        }
+      }
+    },
+    "/productpurpose": {
+      "get": {
+        "operationId": "GetProductPurposes",
+        "summary": "Get product purposes",
+        "description": "Retrieves product purpose records by product identifier or page.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdOptional"
+          },
+          {
+            "$ref": "#/parameters/PageOptional"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product purpose records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductPurposeResponse"
+            }
+          }
+        }
+      }
+    },
+    "/productrisk": {
+      "get": {
+        "operationId": "GetProductRisks",
+        "summary": "Get product risks",
+        "description": "Retrieves product risk records by product identifier or page.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdOptional"
+          },
+          {
+            "$ref": "#/parameters/PageOptional"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product risk records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductRiskResponse"
+            }
+          }
+        }
+      }
+    },
+    "/productroute": {
+      "get": {
+        "operationId": "GetProductRoutes",
+        "summary": "Get product routes",
+        "description": "Retrieves product route records by product identifier.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "$ref": "#/parameters/Lang"
+          },
+          {
+            "$ref": "#/parameters/LnhpdIdRequired"
+          },
+          {
+            "$ref": "#/parameters/OutputFormat"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product route records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductRouteResponse"
+            }
+          }
+        }
+      }
+    },
+    "/bulk/medicinalingredient": {
+      "post": {
+        "operationId": "BulkMedicinalIngredients",
+        "summary": "Bulk medicinal ingredients",
+        "description": "Fetches medicinal ingredient data by ID list or by paginated page range.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaginatedBulkRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk medicinal ingredient records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/MedicinalIngredientBulkResponse"
+            }
+          }
+        }
+      }
+    },
+    "/bulk/productpurpose": {
+      "post": {
+        "operationId": "BulkProductPurposes",
+        "summary": "Bulk product purposes",
+        "description": "Fetches product purpose data by ID list or by paginated page range.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaginatedBulkRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk product purpose records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductPurposeBulkResponse"
+            }
+          }
+        }
+      }
+    },
+    "/bulk/productrisk": {
+      "post": {
+        "operationId": "BulkProductRisks",
+        "summary": "Bulk product risks",
+        "description": "Fetches product risk data by ID list or by paginated page range.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/PaginatedBulkRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk product risk records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductRiskBulkResponse"
+            }
+          }
+        }
+      }
+    },
+    "/bulk/productlicence": {
+      "post": {
+        "operationId": "BulkProductLicences",
+        "summary": "Bulk product licences",
+        "description": "Fetches product licence data by licence-number list or full export, with optional revised-date filtering.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ProductLicenceBulkRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bulk product licence records returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ProductLicenceBulkResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "parameters": {
+    "Lang": {
+      "name": "lang",
+      "in": "query",
+      "type": "string",
+      "required": false,
+      "default": "en",
+      "enum": [
+        "en",
+        "fr"
+      ],
+      "description": "Language of the upstream response.",
+      "x-ms-summary": "Language"
+    },
+    "OutputFormat": {
+      "name": "outputFormat",
+      "in": "query",
+      "type": "string",
+      "required": false,
+      "default": "json",
+      "enum": [
+        "json",
+        "csv"
+      ],
+      "description": "How the connector should return the normalized result.",
+      "x-ms-summary": "Output Format"
+    },
+    "PageOptional": {
+      "name": "page",
+      "in": "query",
+      "type": "integer",
+      "required": false,
+      "minimum": 1,
+      "description": "Page number to fetch when not filtering by ID.",
+      "x-ms-summary": "Page"
+    },
+    "LnhpdIdOptional": {
+      "name": "id",
+      "in": "query",
+      "type": "string",
+      "required": false,
+      "description": "LNHPD product identifier.",
+      "x-ms-summary": "LNHPD ID"
+    },
+    "LnhpdIdRequired": {
+      "name": "id",
+      "in": "query",
+      "type": "string",
+      "required": true,
+      "description": "LNHPD product identifier.",
+      "x-ms-summary": "LNHPD ID"
+    },
+    "LicenceNumberRequired": {
+      "name": "id",
+      "in": "query",
+      "type": "string",
+      "required": true,
+      "description": "Product licence number.",
+      "x-ms-summary": "Licence Number"
+    }
+  },
+  "definitions": {
+    "Pagination": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer"
+        },
+        "page": {
+          "type": "integer"
+        },
+        "total": {
+          "type": "integer"
+        },
+        "next": {
+          "type": "string"
+        },
+        "previous": {
+          "type": "string"
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "pagination": {
+          "$ref": "#/definitions/Pagination"
+        },
+        "dateReceived": {
+          "type": "string"
+        }
+      }
+    },
+    "BulkSummary": {
+      "type": "object",
+      "properties": {
+        "idsRequested": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagesFetched": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "nextStartPage": {
+          "type": "integer"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "elapsedMs": {
+          "type": "integer"
+        }
+      }
+    },
+    "PaginatedBulkRequest": {
+      "type": "object",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "default": "en",
+          "enum": [
+            "en",
+            "fr"
+          ]
+        },
+        "outputFormat": {
+          "type": "string",
+          "default": "json",
+          "enum": [
+            "json",
+            "csv"
+          ]
+        },
+        "ids": {
+          "type": "array",
+          "description": "Optional list of LNHPD IDs. When supplied, paging inputs must be omitted.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "startPage": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "First page to fetch. Defaults to 1 when paging is used."
+        },
+        "endPage": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Last page to fetch. When omitted, the action runs until the connector safety window is reached."
+        }
+      }
+    },
+    "ProductLicenceBulkRequest": {
+      "type": "object",
+      "properties": {
+        "lang": {
+          "type": "string",
+          "default": "en",
+          "enum": [
+            "en",
+            "fr"
+          ]
+        },
+        "outputFormat": {
+          "type": "string",
+          "default": "csv",
+          "enum": [
+            "json",
+            "csv"
+          ]
+        },
+        "ids": {
+          "type": "array",
+          "description": "Optional list of product licence numbers. When omitted, the full upstream dataset is requested.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ifRevisedSince": {
+          "type": "string",
+          "format": "date",
+          "description": "Optional inclusive filter applied to the `revised_date` field."
+        }
+      }
+    },
+    "MedicinalIngredient": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "ingredient_name": {
+          "type": "string"
+        },
+        "ingredient_Text": {
+          "type": "string"
+        },
+        "potency_amount": {
+          "type": "number"
+        },
+        "potency_constituent": {
+          "type": "string"
+        },
+        "potency_unit_of_measure": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number"
+        },
+        "quantity_minimum": {
+          "type": "number"
+        },
+        "quantity_maximum": {
+          "type": "number"
+        },
+        "quantity_unit_of_measure": {
+          "type": "string"
+        },
+        "ratio_numerator": {
+          "type": "string"
+        },
+        "ratio_denominator": {
+          "type": "string"
+        },
+        "dried_herb_equivalent": {
+          "type": "string"
+        },
+        "dhe_unit_of_measure": {
+          "type": "string"
+        },
+        "extract_type_desc": {
+          "type": "string"
+        },
+        "source_material": {
+          "type": "string"
+        }
+      }
+    },
+    "NonMedicinalIngredient": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "ingredient_name": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductDose": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "dose_id": {
+          "type": "integer"
+        },
+        "population_type_desc": {
+          "type": "string"
+        },
+        "age": {
+          "type": "number"
+        },
+        "age_minimum": {
+          "type": "number"
+        },
+        "age_maximum": {
+          "type": "number"
+        },
+        "uom_type_desc_age": {
+          "type": "string"
+        },
+        "quantity_dose": {
+          "type": "number"
+        },
+        "quantity_dose_minimum": {
+          "type": "number"
+        },
+        "quantity_dose_maximum": {
+          "type": "number"
+        },
+        "uom_type_desc_quantity_dose": {
+          "type": "string"
+        },
+        "frequency": {
+          "type": "number"
+        },
+        "frequency_minimum": {
+          "type": "number"
+        },
+        "frequency_maximum": {
+          "type": "number"
+        },
+        "uom_type_desc_frequency": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductLicence": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "licence_number": {
+          "type": "string"
+        },
+        "licence_date": {
+          "type": "string"
+        },
+        "revised_date": {
+          "type": "string"
+        },
+        "time_receipt": {
+          "type": "string"
+        },
+        "date_start": {
+          "type": "string"
+        },
+        "product_name_id": {
+          "type": "integer"
+        },
+        "product_name": {
+          "type": "string"
+        },
+        "dosage_form": {
+          "type": "string"
+        },
+        "company_id": {
+          "type": "integer"
+        },
+        "company_name_id": {
+          "type": "integer"
+        },
+        "company_name": {
+          "type": "string"
+        },
+        "sub_submission_type_code": {
+          "type": "integer"
+        },
+        "sub_submission_type_desc": {
+          "type": "string"
+        },
+        "flag_primary_name": {
+          "type": "integer"
+        },
+        "flag_product_status": {
+          "type": "integer"
+        },
+        "flag_attested_monograph": {
+          "type": "integer"
+        }
+      }
+    },
+    "ProductPurpose": {
+      "type": "object",
+      "properties": {
+        "text_id": {
+          "type": "integer"
+        },
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "purpose": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductRisk": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "risk_id": {
+          "type": "integer"
+        },
+        "risk_type_desc": {
+          "type": "string"
+        },
+        "sub_risk_type_desc": {
+          "type": "string"
+        },
+        "risk_text": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductRoute": {
+      "type": "object",
+      "properties": {
+        "lnhpd_id": {
+          "type": "integer"
+        },
+        "route_id": {
+          "type": "integer"
+        },
+        "route_type_desc": {
+          "type": "string"
+        }
+      }
+    },
+    "MedicinalIngredientResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MedicinalIngredient"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "NonMedicinalIngredientResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/NonMedicinalIngredient"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductDoseResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductDose"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductLicenceResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductLicence"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductPurposeResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductPurpose"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductRiskResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductRisk"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "ProductRouteResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductRoute"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        }
+      }
+    },
+    "MedicinalIngredientBulkResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/MedicinalIngredient"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/BulkSummary"
+        }
+      }
+    },
+    "ProductPurposeBulkResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductPurpose"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/BulkSummary"
+        }
+      }
+    },
+    "ProductRiskBulkResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductRisk"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/BulkSummary"
+        }
+      }
+    },
+    "ProductLicenceBulkResponse": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string"
+        },
+        "lang": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "itemCount": {
+          "type": "integer"
+        },
+        "metadata": {
+          "$ref": "#/definitions/Metadata"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProductLicence"
+          }
+        },
+        "csvContent": {
+          "type": "string"
+        },
+        "summary": {
+          "$ref": "#/definitions/BulkSummary"
+        }
+      }
+    }
+  }
+}

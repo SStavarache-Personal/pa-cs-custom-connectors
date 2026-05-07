@@ -1,0 +1,22 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#C8102E",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "GetMedicinalIngredients",
+      "GetNonMedicinalIngredients",
+      "GetProductDoses",
+      "GetProductLicences",
+      "GetProductPurposes",
+      "GetProductRisks",
+      "GetProductRoutes",
+      "BulkMedicinalIngredients",
+      "BulkProductPurposes",
+      "BulkProductRisks",
+      "BulkProductLicences"
+    ]
+  }
+}
