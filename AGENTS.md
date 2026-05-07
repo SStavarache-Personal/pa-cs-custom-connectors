@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 - `connectors/`: One folder per connector (PascalCase), e.g. `connectors/HttpRequestAdvanced/`.
 - `connectors/<ConnectorName>/`: Keep connector assets together:
-  - `apiDefinition.swagger.json` (or `.yaml`) for OpenAPI 2.0
+  - `apiDefinition.swagger.json` for OpenAPI 2.0 (use JSON for new or updated connectors)
   - `apiProperties.json` for connector metadata/script bindings
   - `script.csx` for C# custom code
   - `README.md` for connector-specific docs
@@ -18,6 +18,10 @@
 - `.\deploy-connector.ps1 -ConnectorName "HttpRequestAdvanced"`: Validate files and deploy connector.
 - `.\deploy-connector.ps1 -ConnectorName "Name" -Environment "<env>" -SolutionUniqueName "<solution>"`: Override `.env` values.
 - `Get-Help .\deploy-connector.ps1 -Detailed`: Full script options and examples.
+
+## Skills
+- Use `.github/skills/power-automate-connector-authoring/` for the end-to-end connector creation workflow.
+- Use `.github/skills/power-automate-connector-deployment/` for the deployment workflow and troubleshooting path.
 
 ## Coding Style & Naming Conventions
 - Use 4-space indentation in `script.csx`; keep methods small and operation-focused.

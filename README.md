@@ -15,16 +15,23 @@ pa-cs-custom-connectors/
 │   ├── NAMING_CONVENTIONS.md           # C# and file naming standards
 │   ├── SWAGGER_GUIDE.md                # OpenAPI 2.0 specification guide
 │   └── DEPLOYMENT_GUIDE.md             # Manual deployment instructions
-├── .ai/                                # AI agent instructions
-│   └── INSTRUCTIONS.md                 # Rules for AI code generation
+├── .ai/                                # AI agent reference index
+│   └── INSTRUCTIONS.md                 # Skill index and hard constraints
+├── .github/
+│   ├── copilot-instructions.md         # Concise always-on agent guidance
+│   └── skills/                         # On-demand agent workflows
+│       ├── power-automate-connector-authoring/
+│       └── power-automate-connector-deployment/
 ├── _template/                          # Template for new connectors
 │   ├── README.md                       # Template documentation
-│   ├── apiDefinition.swagger.yaml      # OpenAPI 2.0 template
+│   ├── apiDefinition.swagger.json      # OpenAPI 2.0 template
+│   ├── apiProperties.json              # Connector metadata template
 │   └── script.csx                      # C# script template
 └── connectors/                         # Individual connector folders
     └── <ConnectorName>/                # One folder per connector
         ├── README.md                   # Connector-specific documentation
-        ├── apiDefinition.swagger.yaml  # OpenAPI 2.0 definition (Swagger)
+        ├── apiDefinition.swagger.json  # OpenAPI 2.0 definition (Swagger)
+        ├── apiProperties.json          # Connector metadata and script bindings
         ├── script.csx                  # C# custom code script
         └── icon.png                    # Connector icon (optional)
 ```
@@ -37,7 +44,8 @@ Each connector folder **must** contain the following files for manual import int
 
 | File | Description | Required |
 |------|-------------|----------|
-| `apiDefinition.swagger.yaml` | OpenAPI 2.0 (Swagger) definition file describing API endpoints, operations, and data models | ✅ Yes |
+| `apiDefinition.swagger.json` | OpenAPI 2.0 (Swagger) definition file describing API endpoints, operations, and data models | ✅ Yes |
+| `apiProperties.json` | Connector metadata and scripted operation bindings | ✅ Yes |
 | `script.csx` | Single C# script file containing custom code logic | ✅ Yes |
 | `README.md` | Connector documentation with purpose, usage, and configuration | ✅ Yes |
 | `icon.png` | Connector icon (32x32 or 64x64 pixels, PNG format) | ⬜ Optional |
@@ -107,7 +115,7 @@ If you prefer the UI or don't have CLI access:
 1. Sign in to [Power Automate](https://make.powerautomate.com)
 2. Navigate to **Data** → **Custom connectors**
 3. Select **New custom connector** → **Import an OpenAPI file**
-4. Name your connector and upload the `apiDefinition.swagger.yaml` file
+4. Name your connector and upload the `apiDefinition.swagger.json` file
 5. Click **Continue**
 
 #### Step 2: Add the C# Script
@@ -136,19 +144,18 @@ See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed manual deployme
 | [Naming Conventions](docs/NAMING_CONVENTIONS.md) | C# and file naming standards |
 | [Swagger Guide](docs/SWAGGER_GUIDE.md) | OpenAPI 2.0 specification requirements |
 | [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Step-by-step manual deployment |
-| [AI Instructions](.ai/INSTRUCTIONS.md) | Guidelines for AI agents creating connectors |
+| [AI Agent Reference](.ai/INSTRUCTIONS.md) | Skill index and hard constraints for AI agents |
 
 ---
 
 ## 🤖 For AI Agents
 
-If you are an AI agent creating new connectors for this repository, **read [.ai/INSTRUCTIONS.md](.ai/INSTRUCTIONS.md) first**. This file contains:
+If you are an AI agent creating or deploying connectors in this repository, start with these on-demand skills:
 
-- Allowed C# namespaces
-- Required class structure
-- Naming conventions
-- File templates
-- Platform constraints
+- `.github/skills/power-automate-connector-authoring/`
+- `.github/skills/power-automate-connector-deployment/`
+
+Use [.ai/INSTRUCTIONS.md](.ai/INSTRUCTIONS.md) as the short index of hard constraints and entry points.
 
 ---
 

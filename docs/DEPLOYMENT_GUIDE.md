@@ -9,7 +9,8 @@ This guide provides step-by-step instructions for manually deploying custom conn
 Before deploying a connector, ensure you have:
 
 - [ ] A Power Automate account with appropriate permissions
-- [ ] The connector's `apiDefinition.swagger.yaml` file
+- [ ] The connector's `apiDefinition.swagger.json` file
+- [ ] The connector's `apiProperties.json` file
 - [ ] The connector's `script.csx` file
 - [ ] Any required API keys or credentials for the target API
 
@@ -32,7 +33,7 @@ Before deploying a connector, ensure you have:
 1. Click **+ New custom connector** in the top right
 2. Select **Import an OpenAPI file**
 3. Enter a name for your connector (use the folder name from the repository)
-4. Click **Import** and select the `apiDefinition.swagger.yaml` file
+4. Click **Import** and select the `apiDefinition.swagger.json` file
 5. Click **Continue**
 
 > **Alternative:** You can also select **Create from blank** if you prefer to manually configure each setting.
@@ -107,7 +108,7 @@ On the **Code** tab:
 4. **Copy the entire contents** of the file
 5. **Paste** into the code editor
 6. Under **Operations**, select which operations should use the custom code
-   - Typically, select **all operations** that have custom handling in the script
+   - Match the operations listed in `apiProperties.json` `scriptOperations`
 
 > ⚠️ **Important:** If the Code tab is not visible, you may need to:
 > - Use a different environment
@@ -169,7 +170,7 @@ For each operation:
 2. Click the **⋯** menu on your connector
 3. Select **Edit**
 4. On the General tab, click **Import** (under the connector icon)
-5. Upload the updated `apiDefinition.swagger.yaml`
+5. Upload the updated `apiDefinition.swagger.json`
 6. Re-add the custom code from `script.csx`
 7. Click **Update connector**
 

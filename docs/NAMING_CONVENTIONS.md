@@ -38,7 +38,8 @@ Every connector folder must have these files with exact names:
 
 | File | Name | Format |
 |------|------|--------|
-| OpenAPI Definition | `apiDefinition.swagger.yaml` | YAML |
+| OpenAPI Definition | `apiDefinition.swagger.json` | JSON |
+| Connector Metadata | `apiProperties.json` | JSON |
 | C# Script | `script.csx` | C# Script |
 | Documentation | `README.md` | Markdown |
 
@@ -264,7 +265,7 @@ For connector versions, use semantic versioning:
 When creating a new connector:
 
 - [ ] Folder name is PascalCase
-- [ ] Files use standard names (`apiDefinition.swagger.yaml`, `script.csx`, `README.md`)
+- [ ] Files use standard names (`apiDefinition.swagger.json`, `apiProperties.json`, `script.csx`, `README.md`)
 - [ ] Class is named `Script`
 - [ ] All methods are PascalCase
 - [ ] Async methods end with `Async`

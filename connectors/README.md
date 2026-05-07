@@ -10,7 +10,8 @@ Each connector has its own folder:
 connectors/
 |-- ConnectorName/
 |   |-- README.md                    # Documentation
-|   |-- apiDefinition.swagger.yaml   # OpenAPI 2.0 definition
+|   |-- apiDefinition.swagger.json   # OpenAPI 2.0 definition
+|   |-- apiProperties.json           # Connector metadata and script bindings
 |   |-- script.csx                   # C# custom code
 |   `-- icon.png                     # Optional icon
 ```
@@ -29,6 +30,7 @@ connectors/
 | [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | Ready |
 | [DatasetSqlQuery](DatasetSqlQuery/) | In-script SQL query execution over user-provided JSON/CSV datasets with joins, aggregates, windows, and multiple output modes | Ready |
 | [EmailTemplateRenderer](EmailTemplateRenderer/) | Render subject, HTML body, and deduplication key templates with simple placeholder replacement and validation | Ready |
+| [HealthCanadaLnhpd](HealthCanadaLnhpd/) | Health Canada LNHPD direct queries plus bulk extraction helpers with JSON and CSV output modes | Ready |
 | [InessMedicaments](InessMedicaments/) | Scrapes INESSS medication evaluation tables (génériques, innovateurs, autres travaux, sollicitations, produits évalués with pagination) | Ready |
 | [RegexExtractor](RegexExtractor/) | Extract, test, and replace text using regular expressions with support for named groups and common regex options | Ready |
 

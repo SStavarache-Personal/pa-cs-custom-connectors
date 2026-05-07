@@ -1,0 +1,204 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Email Template Renderer",
+    "description": "Render simple email templates with double-curly-brace placeholders and validation for required variables.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector",
+      "email": "support@example.com"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/render-email-template": {
+      "post": {
+        "operationId": "RenderEmailTemplate",
+        "summary": "Render email template",
+        "description": "Renders subject, HTML body, and deduplication key templates using direct variable replacement.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Template payload with variable definitions and rendering context.",
+            "schema": {
+              "$ref": "#/definitions/RenderEmailTemplateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates rendered successfully.",
+            "schema": {
+              "$ref": "#/definitions/RenderEmailTemplateResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request or template validation failure.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "RenderEmailTemplateRequest": {
+      "type": "object",
+      "required": [
+        "subjectTemplate",
+        "bodyHtmlTemplate",
+        "deduplicationKeyTemplate",
+        "variableDefinition",
+        "context"
+      ],
+      "properties": {
+        "subjectTemplate": {
+          "type": "string",
+          "description": "Subject template using placeholders like {{RecordId}}.",
+          "x-ms-summary": "Subject Template",
+          "x-ms-visibility": "important"
+        },
+        "bodyHtmlTemplate": {
+          "type": "string",
+          "description": "HTML body template using placeholders like {{RecipientDisplayName}}.",
+          "x-ms-summary": "Body HTML Template",
+          "x-ms-visibility": "important"
+        },
+        "deduplicationKeyTemplate": {
+          "type": "string",
+          "description": "Deduplication key template using placeholders like {{NotificationType}}.",
+          "x-ms-summary": "Deduplication Key Template",
+          "x-ms-visibility": "important"
+        },
+        "variableDefinition": {
+          "$ref": "#/definitions/VariableDefinition"
+        },
+        "context": {
+          "type": "object",
+          "description": "Values used to replace placeholders during rendering.",
+          "x-ms-summary": "Context"
+        }
+      }
+    },
+    "VariableDefinition": {
+      "type": "object",
+      "required": [
+        "required"
+      ],
+      "properties": {
+        "required": {
+          "type": "array",
+          "description": "Variables that must exist in the context object.",
+          "x-ms-summary": "Required Variables",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional": {
+          "type": "array",
+          "description": "Variables that may be used by templates when provided.",
+          "x-ms-summary": "Optional Variables",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "RenderEmailTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "subject": {
+          "type": "string",
+          "description": "Rendered email subject.",
+          "x-ms-summary": "Subject"
+        },
+        "bodyHtml": {
+          "type": "string",
+          "description": "Rendered HTML body.",
+          "x-ms-summary": "Body HTML"
+        },
+        "deduplicationKey": {
+          "type": "string",
+          "description": "Rendered deduplication key.",
+          "x-ms-summary": "Deduplication Key"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Machine-readable error code.",
+              "x-ms-summary": "Code"
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable error message.",
+              "x-ms-summary": "Message"
+            },
+            "details": {
+              "$ref": "#/definitions/ValidationErrorDetails"
+            }
+          }
+        }
+      }
+    },
+    "ValidationErrorDetails": {
+      "type": "object",
+      "properties": {
+        "missingRequiredVariables": {
+          "type": "array",
+          "description": "Required variables that were not present in the context object.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unresolvedPlaceholders": {
+          "type": "array",
+          "description": "Placeholders that could not be rendered.",
+          "items": {
+            "$ref": "#/definitions/UnresolvedPlaceholder"
+          }
+        }
+      }
+    },
+    "UnresolvedPlaceholder": {
+      "type": "object",
+      "properties": {
+        "templateField": {
+          "type": "string",
+          "description": "Template field containing the unresolved placeholder.",
+          "x-ms-summary": "Template Field"
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder variable name.",
+          "x-ms-summary": "Placeholder"
+        },
+        "reason": {
+          "type": "string",
+          "description": "Reason the placeholder could not be rendered.",
+          "x-ms-summary": "Reason"
+        }
+      }
+    }
+  }
+}

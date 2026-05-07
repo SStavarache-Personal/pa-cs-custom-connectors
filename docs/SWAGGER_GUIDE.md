@@ -2,6 +2,8 @@
 
 This guide covers the requirements and best practices for creating OpenAPI 2.0 definitions for Power Automate custom connectors.
 
+In this repository, new or updated connector definitions should be stored as `apiDefinition.swagger.json`. The examples below are structural guidance only.
+
 ---
 
 ## ⚠️ Important: OpenAPI 2.0 Only

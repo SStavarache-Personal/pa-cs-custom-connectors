@@ -92,7 +92,8 @@ SOLUTION_UNIQUE_NAME=CustomConnectors
 
 ### File Validation
 The script validates these files exist:
-- ✅ `connectors/{ConnectorName}/apiDefinition.swagger.yaml` (required)
+- ✅ `connectors/{ConnectorName}/apiDefinition.swagger.json` or `.yaml` (required)
+- ✅ `connectors/{ConnectorName}/apiProperties.json` (required)
 - ✅ `connectors/{ConnectorName}/script.csx` (required)
 - ⚠️ `connectors/{ConnectorName}/icon.png` (optional - warning if missing)
 
@@ -131,11 +132,11 @@ Error: Connector folder not found: C:\...\connectors\YourConnector
 Solution: Check spelling of connector name (case-sensitive)
 ```
 
-### "Missing required file: apiDefinition.swagger.yaml"
+### "Missing required file: apiDefinition.swagger.json or apiDefinition.swagger.yaml"
 ```
-Error: Missing required file: apiDefinition.swagger.yaml
+Error: Missing required file: apiDefinition.swagger.json or apiDefinition.swagger.yaml
 
-Solution: Ensure the connector has all three required files
+Solution: Ensure the connector has `apiDefinition.swagger.json` (or `.yaml`), `apiProperties.json`, and `script.csx`
 ```
 
 ### "Must provide either --settings-file or --api-definition-file"

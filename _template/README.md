@@ -6,7 +6,8 @@ This folder contains templates for creating new Power Automate custom connectors
 
 | File | Purpose |
 |------|---------|
-| `apiDefinition.swagger.yaml` | OpenAPI 2.0 definition template |
+| `apiDefinition.swagger.json` | OpenAPI 2.0 definition template |
+| `apiProperties.json` | Connector metadata and script binding template |
 | `script.csx` | C# script template |
 
 ## How to Use

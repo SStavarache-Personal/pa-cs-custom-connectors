@@ -37,7 +37,7 @@ public class Script : ScriptBase
         string operationId = DecodeOperationId(this.Context.OperationId);
 
         // Route to appropriate handler based on OperationId
-        // OperationId must match the operationId in apiDefinition.swagger.yaml
+        // OperationId must match the operationId in apiDefinition.swagger.json
         return operationId switch
         {
             "GetItems" => await HandleGetItemsAsync(),
