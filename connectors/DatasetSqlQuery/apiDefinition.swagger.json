@@ -1,9 +1,9 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Dataset SQL Query",
-    "description": "Run read-only SQL queries against user-provided JSON or CSV datasets with selectable output formats.",
-    "version": "1.0.0",
+    "title": "Dataset SQL Ops",
+    "description": "Transform user-provided JSON or CSV datasets with reusable SQL-style data actions and a raw SQL query action.",
+    "version": "1.1.0",
     "contact": {
       "name": "Custom Connector",
       "email": "support@example.com"
@@ -25,7 +25,7 @@
       "post": {
         "operationId": "ExecuteDatasetSqlQuery",
         "summary": "Execute SQL query",
-        "description": "Executes a read-only SQL query against one or more provided datasets.",
+        "description": "Executes a read-only SQL query against zero or more provided datasets.",
         "x-ms-visibility": "important",
         "parameters": [
           {
@@ -58,39 +58,553 @@
           }
         }
       }
+    },
+    "/select": {
+      "post": {
+        "operationId": "SelectDatasetRows",
+        "summary": "Select dataset columns",
+        "description": "Projects one dataset using a SQL-style select list with optional aliases.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SelectRowsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows selected successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/filter": {
+      "post": {
+        "operationId": "FilterDatasetRows",
+        "summary": "Filter dataset rows",
+        "description": "Filters one dataset using a SQL WHERE expression, including CAST support for dates and timestamps.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/FilterRowsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows filtered successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/join": {
+      "post": {
+        "operationId": "JoinDatasets",
+        "summary": "Join two datasets",
+        "description": "Joins two datasets with inner, left outer, right outer, left anti, or right anti join behavior.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JoinDatasetsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datasets joined successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/group-by": {
+      "post": {
+        "operationId": "GroupDatasetRows",
+        "summary": "Group dataset rows",
+        "description": "Groups a dataset with multiple aggregate expressions and optional ranking columns.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GroupRowsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows grouped successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/distinct": {
+      "post": {
+        "operationId": "DistinctDatasetRows",
+        "summary": "Distinct dataset rows",
+        "description": "Returns distinct rows for the whole dataset or for a selected column list.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/DistinctRowsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Distinct rows returned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sort": {
+      "post": {
+        "operationId": "SortDatasetRows",
+        "summary": "Sort dataset rows",
+        "description": "Sorts one dataset using a SQL ORDER BY expression.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/SortRowsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows sorted successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/union": {
+      "post": {
+        "operationId": "UnionDatasets",
+        "summary": "Union datasets",
+        "description": "Combines two or more datasets with UNION semantics.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UnionDatasetsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datasets unioned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/union-all": {
+      "post": {
+        "operationId": "UnionAllDatasets",
+        "summary": "Union all datasets",
+        "description": "Combines two or more datasets with UNION ALL semantics.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UnionDatasetsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Datasets unioned successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteQueryResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "OutputMode": {
+      "type": "string",
+      "enum": [
+        "Csv",
+        "RowsAndSchema",
+        "ObjectArray"
+      ],
+      "description": "Result output mode."
+    },
     "ExecuteQueryRequest": {
       "type": "object",
       "required": [
-        "sql",
-        "outputMode",
-        "datasets"
+        "sql"
       ],
       "properties": {
         "sql": {
           "type": "string",
           "description": "Read-only SQL query to execute.",
-          "x-ms-summary": "SQL"
+          "x-ms-summary": "SQL",
+          "x-ms-visibility": "important"
         },
         "outputMode": {
-          "type": "string",
-          "enum": [
-            "Csv",
-            "RowsAndSchema",
-            "ObjectArray"
-          ],
-          "description": "Result output mode.",
-          "x-ms-summary": "Output Mode"
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
         },
         "datasets": {
           "type": "array",
-          "description": "Datasets available as SQL tables.",
+          "description": "Datasets available as SQL tables. Omit this for dataset-less queries such as SELECT 1.",
           "x-ms-summary": "Datasets",
           "items": {
             "$ref": "#/definitions/DatasetInput"
           }
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "SelectRowsRequest": {
+      "type": "object",
+      "required": [
+        "dataset",
+        "columns"
+      ],
+      "properties": {
+        "dataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Dataset",
+          "x-ms-visibility": "important"
+        },
+        "columns": {
+          "type": "string",
+          "description": "Comma-separated select list. SQL aliases are allowed, for example user_id AS customer_id.",
+          "x-ms-summary": "Columns",
+          "x-ms-visibility": "important"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "FilterRowsRequest": {
+      "type": "object",
+      "required": [
+        "dataset",
+        "where"
+      ],
+      "properties": {
+        "dataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Dataset",
+          "x-ms-visibility": "important"
+        },
+        "where": {
+          "type": "string",
+          "description": "SQL WHERE expression. CAST(value AS DATE), CAST(value AS DATETIME), and CAST(value AS TIMESTAMP) are supported.",
+          "x-ms-summary": "Where",
+          "x-ms-visibility": "important"
+        },
+        "selectColumns": {
+          "type": "string",
+          "description": "Optional select list to return instead of all columns.",
+          "x-ms-summary": "Select Columns"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "JoinDatasetsRequest": {
+      "type": "object",
+      "required": [
+        "leftDataset",
+        "rightDataset",
+        "joinType",
+        "on"
+      ],
+      "properties": {
+        "leftDataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Left Dataset",
+          "x-ms-visibility": "important"
+        },
+        "rightDataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Right Dataset",
+          "x-ms-visibility": "important"
+        },
+        "joinType": {
+          "type": "string",
+          "enum": [
+            "Inner",
+            "Left",
+            "Right",
+            "LeftAnti",
+            "RightAnti"
+          ],
+          "description": "Join type.",
+          "x-ms-summary": "Join Type",
+          "x-ms-visibility": "important"
+        },
+        "on": {
+          "type": "string",
+          "description": "SQL join condition, for example orders.user_id = users.user_id.",
+          "x-ms-summary": "On",
+          "x-ms-visibility": "important"
+        },
+        "selectColumns": {
+          "type": "string",
+          "description": "Optional select list. Defaults to both datasets for standard joins and to the preserved side for anti joins.",
+          "x-ms-summary": "Select Columns"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "GroupRowsRequest": {
+      "type": "object",
+      "required": [
+        "dataset",
+        "aggregations"
+      ],
+      "properties": {
+        "dataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Dataset",
+          "x-ms-visibility": "important"
+        },
+        "groupByColumns": {
+          "type": "string",
+          "description": "Optional comma-separated group by column or expression list.",
+          "x-ms-summary": "Group By Columns"
+        },
+        "aggregations": {
+          "type": "array",
+          "description": "Aggregate expressions to project.",
+          "x-ms-summary": "Aggregations",
+          "items": {
+            "$ref": "#/definitions/AggregationSpec"
+          }
+        },
+        "rankings": {
+          "type": "array",
+          "description": "Optional ranking expressions applied after grouping.",
+          "x-ms-summary": "Rankings",
+          "items": {
+            "$ref": "#/definitions/RankingSpec"
+          }
+        },
+        "having": {
+          "type": "string",
+          "description": "Optional SQL HAVING expression.",
+          "x-ms-summary": "Having"
+        },
+        "orderBy": {
+          "type": "string",
+          "description": "Optional SQL ORDER BY expression applied to the grouped result.",
+          "x-ms-summary": "Order By"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "DistinctRowsRequest": {
+      "type": "object",
+      "required": [
+        "dataset"
+      ],
+      "properties": {
+        "dataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Dataset",
+          "x-ms-visibility": "important"
+        },
+        "columns": {
+          "type": "string",
+          "description": "Optional comma-separated column list. Leave empty to run DISTINCT on the full row.",
+          "x-ms-summary": "Columns"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "SortRowsRequest": {
+      "type": "object",
+      "required": [
+        "dataset",
+        "orderBy"
+      ],
+      "properties": {
+        "dataset": {
+          "$ref": "#/definitions/DatasetInput",
+          "x-ms-summary": "Dataset",
+          "x-ms-visibility": "important"
+        },
+        "orderBy": {
+          "type": "string",
+          "description": "SQL ORDER BY expression, for example user_id DESC, order_date ASC.",
+          "x-ms-summary": "Order By",
+          "x-ms-visibility": "important"
+        },
+        "selectColumns": {
+          "type": "string",
+          "description": "Optional select list to return instead of all columns.",
+          "x-ms-summary": "Select Columns"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        }
+      }
+    },
+    "UnionDatasetsRequest": {
+      "type": "object",
+      "required": [
+        "datasets"
+      ],
+      "properties": {
+        "datasets": {
+          "type": "array",
+          "description": "Two or more datasets to combine in order.",
+          "x-ms-summary": "Datasets",
+          "items": {
+            "$ref": "#/definitions/DatasetInput"
+          }
+        },
+        "columns": {
+          "type": "string",
+          "description": "Optional select list applied to every dataset before the union. Leave empty to union full rows.",
+          "x-ms-summary": "Columns"
+        },
+        "outputMode": {
+          "$ref": "#/definitions/OutputMode",
+          "x-ms-summary": "Output Mode",
+          "default": "RowsAndSchema"
         },
         "engineOptions": {
           "$ref": "#/definitions/EngineOptions"
@@ -106,7 +620,7 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Dataset table name used in SQL.",
+          "description": "Dataset table name used in generated SQL.",
           "x-ms-summary": "Dataset Name"
         },
         "format": {
@@ -136,8 +650,84 @@
         },
         "typeOverrides": {
           "type": "object",
-          "description": "Optional map of column name to target type.",
+          "description": "Optional map of column name to target type. Supports String, Int64, Double, Decimal, Boolean, Date, DateTime, and Timestamp.",
           "x-ms-summary": "Type Overrides"
+        }
+      }
+    },
+    "AggregationSpec": {
+      "type": "object",
+      "required": [
+        "function"
+      ],
+      "properties": {
+        "function": {
+          "type": "string",
+          "enum": [
+            "COUNT",
+            "SUM",
+            "AVG",
+            "MIN",
+            "MAX"
+          ],
+          "description": "Aggregate function.",
+          "x-ms-summary": "Function",
+          "x-ms-visibility": "important"
+        },
+        "column": {
+          "type": "string",
+          "description": "Column or expression to aggregate. Leave empty only for COUNT(*).",
+          "x-ms-summary": "Column"
+        },
+        "alias": {
+          "type": "string",
+          "description": "Optional output column alias.",
+          "x-ms-summary": "Alias"
+        },
+        "distinct": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the aggregate should use DISTINCT values.",
+          "x-ms-summary": "Distinct",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "RankingSpec": {
+      "type": "object",
+      "required": [
+        "function",
+        "alias",
+        "orderBy"
+      ],
+      "properties": {
+        "function": {
+          "type": "string",
+          "enum": [
+            "ROW_NUMBER",
+            "RANK",
+            "DENSE_RANK"
+          ],
+          "description": "Ranking function.",
+          "x-ms-summary": "Function",
+          "x-ms-visibility": "important"
+        },
+        "alias": {
+          "type": "string",
+          "description": "Output column alias.",
+          "x-ms-summary": "Alias",
+          "x-ms-visibility": "important"
+        },
+        "orderBy": {
+          "type": "string",
+          "description": "SQL ORDER BY expression used by the ranking window.",
+          "x-ms-summary": "Order By",
+          "x-ms-visibility": "important"
+        },
+        "partitionByColumns": {
+          "type": "string",
+          "description": "Optional SQL PARTITION BY expression list for the ranking window.",
+          "x-ms-summary": "Partition By Columns"
         }
       }
     },
@@ -211,7 +801,7 @@
         "maxOutputRows": {
           "type": "integer",
           "default": 100000,
-          "description": "Maximum rows returned by query.",
+          "description": "Maximum rows returned by the action.",
           "x-ms-summary": "Max Output Rows",
           "x-ms-visibility": "advanced"
         }
