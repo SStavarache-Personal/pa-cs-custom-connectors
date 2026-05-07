@@ -32,6 +32,7 @@ connectors/
 | [EmailTemplateRenderer](EmailTemplateRenderer/) | Render subject, HTML body, and deduplication key templates with simple placeholder replacement and validation | Ready |
 | [HealthCanadaLnhpd](HealthCanadaLnhpd/) | Health Canada LNHPD direct queries plus bulk extraction helpers with JSON and CSV output modes | Ready |
 | [InessMedicaments](InessMedicaments/) | Scrapes INESSS medication evaluation tables (génériques, innovateurs, autres travaux, sollicitations, produits évalués with pagination) | Ready |
+| [OllamaCloud](OllamaCloud/) | Call Ollama cloud chat, generation, embedding, model listing, and batch chat endpoints with API key authentication | Ready |
 | [RegexExtractor](RegexExtractor/) | Extract, test, and replace text using regular expressions with support for named groups and common regex options | Ready |
 
 ---

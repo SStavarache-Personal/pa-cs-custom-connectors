@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#111827",
+    "capabilities": [],
+    "publisher": "Custom Connector",
+    "stackOwner": "",
+    "scriptOperations": [
+      "GenerateChatResponse",
+      "GenerateTextResponse",
+      "GenerateEmbeddings",
+      "ListModels",
+      "GenerateBatchChatResponses"
+    ]
+  }
+}
