@@ -13,6 +13,7 @@ public class Script : ScriptBase
 {
     private const int DefaultMaxOutputRows = 100000;
     private const int AbsoluteMaxOutputRows = 1000000;
+    private static readonly Regex OperationIdPattern = new Regex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.CultureInvariant);
 
     public override async Task<HttpResponseMessage> ExecuteAsync()
     {
@@ -1183,7 +1184,7 @@ public class Script : ScriptBase
 
     private static bool IsValidOperationId(string value)
     {
-        return !string.IsNullOrWhiteSpace(value) && Regex.IsMatch(value, "^[A-Za-z_][A-Za-z0-9_]*$");
+        return !string.IsNullOrWhiteSpace(value) && OperationIdPattern.IsMatch(value);
     }
 
     private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JObject body)

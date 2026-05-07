@@ -334,7 +334,7 @@
       "properties": {
         "sql": {
           "type": "string",
-          "description": "Read-only SQL query to execute.",
+          "description": "Read-only SQL query to execute. Dataset references must match provided dataset names, and dataset-less queries such as SELECT 1 are supported.",
           "x-ms-summary": "SQL",
           "x-ms-visibility": "important"
         },
