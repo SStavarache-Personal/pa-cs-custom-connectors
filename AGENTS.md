@@ -1,58 +1,30 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-- `connectors/`: One folder per connector (PascalCase), e.g. `connectors/HttpRequestAdvanced/`.
-- `connectors/<ConnectorName>/`: Keep connector assets together:
-  - `apiDefinition.swagger.json` for OpenAPI 2.0 (use JSON for new or updated connectors)
-  - `apiProperties.json` for connector metadata/script bindings
-  - `script.csx` for C# custom code
-  - `README.md` for connector-specific docs
-  - `icon.png` optional
-- `_template/`: Starting point for new connectors.
-- `docs/`: Standards and references (`SWAGGER_GUIDE.md`, `NAMING_CONVENTIONS.md`, etc.).
-- `deploy-connector.ps1`: Primary deployment entry point.
+## Scope
+- This repo stores Power Automate custom connectors under `connectors/<ConnectorName>/`; `_template/` is the scaffold for new connectors.
+- Use this file as the single always-on instruction surface for the workspace. Keep detailed procedures in skills or docs.
 
-## Build, Test, and Development Commands
-- `copy .env.example .env`: Create local deployment config.
-- `pac auth create`: Authenticate Power Platform CLI.
-- `.\deploy-connector.ps1 -ConnectorName "HttpRequestAdvanced"`: Validate files and deploy connector.
-- `.\deploy-connector.ps1 -ConnectorName "Name" -Environment "<env>" -SolutionUniqueName "<solution>"`: Override `.env` values.
-- `Get-Help .\deploy-connector.ps1 -Detailed`: Full script options and examples.
+## Use Existing Workflows
+- Load `.github/skills/power-automate-connector-authoring/SKILL.md` before creating or refactoring a connector.
+- Load `.github/skills/power-automate-connector-deployment/SKILL.md` before validating or deploying with `deploy-connector.ps1`, `pac`, or the portal.
 
-## Skills
-- Use `.github/skills/power-automate-connector-authoring/` for the end-to-end connector creation workflow.
-- Use `.github/skills/power-automate-connector-deployment/` for the deployment workflow and troubleshooting path.
+## Commands Agents Should Reach For
+- `Get-Help .\deploy-connector.ps1 -Detailed`
+- `pac auth create`
+- `.\deploy-connector.ps1 -ConnectorName "HttpRequestAdvanced"`
+- There is no automated test suite in this repo; validate manually in a Power Automate dev environment and in the connector Test tab.
 
-## Coding Style & Naming Conventions
-- Use 4-space indentation in `script.csx`; keep methods small and operation-focused.
-- Required script shape:
-  - `public class Script : ScriptBase`
-  - `public override async Task<HttpResponseMessage> ExecuteAsync()`
-- Route by `OperationId`; ensure `operationId` values match `ExecuteAsync()` handlers.
-- Naming:
-  - PascalCase: connector folders, classes, methods, OpenAPI `operationId`
-  - camelCase: locals/parameters
-  - `_camelCase`: private fields
-  - `Async` suffix for async methods
-- Platform rules: OpenAPI **2.0 only**; prefer `Context.SendAsync` over direct `HttpClient`.
+## Non-Negotiable Constraints
+- Keep each connector folder internally consistent: `apiDefinition.swagger.json`, `apiProperties.json`, `script.csx`, and `README.md` must describe the same operations.
+- OpenAPI definitions stay in OpenAPI 2.0 JSON, and Swagger `info.title` must stay within 30 characters.
+- `script.csx` must define `public class Script : ScriptBase` and implement `public override async Task<HttpResponseMessage> ExecuteAsync()`.
+- Keep Swagger `operationId`, `apiProperties.json` `scriptOperations`, and `ExecuteAsync()` routing aligned.
+- Use `Context.SendAsync` for outbound HTTP work and stay inside Power Automate runtime limits.
+- Deployment docs reference `.env.example`, but the template is not tracked in this repo; do not assume it exists locally.
 
-## Testing Guidelines
-- No automated test suite is configured; validate manually in a Power Automate dev environment.
-- Before PR:
-  - Confirm `operationId` <-> handler mapping in `script.csx`
-  - Confirm `apiProperties.json` `scriptOperations` matches implemented operations
-  - Run end-to-end tests in the connector **Test** tab (success and error cases)
-
-## Commit & Pull Request Guidelines
-- Follow existing history style: concise, imperative commits; optional Conventional Commit prefix (`feat:`).
-- Keep commits scoped (one connector or doc concern per commit).
-- PRs should include:
-  - What changed and why
-  - Paths touched (for example `connectors/HttpRequestAdvanced/`)
-  - Validation evidence (manual test notes, request/response samples, or screenshots)
-  - Any required `.env`/environment assumptions
-
-## Security & Configuration Tips
-- Do not commit secrets or populated `.env` values.
-- Keep credentials in Power Platform connection settings, not in `script.csx`.
-- Use production-safe defaults (for example SSL validation enabled unless explicitly required otherwise).
+## References
+- Runtime limits and supported namespaces: `docs/PLATFORM_LIMITATIONS.md`
+- Naming rules: `docs/NAMING_CONVENTIONS.md`
+- OpenAPI structure and examples: `docs/SWAGGER_GUIDE.md`
+- Manual deployment flow: `docs/DEPLOYMENT_GUIDE.md`
+- Example connectors: `connectors/RegexExtractor/` and `connectors/InesssMedicaments/`

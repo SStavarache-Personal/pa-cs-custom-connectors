@@ -1,26 +1,18 @@
 # AI Agent Reference
 
-This repository now keeps its detailed AI-agent workflows in workspace skills.
+This file is a short index. Workspace-wide always-on guidance lives in `AGENTS.md`, and connector-file guidance lives in `.github/instructions/connector-assets.instructions.md`.
 
-## Use These Skills
+## Load These Skills For Workflows
 
-- `.github/skills/power-automate-connector-authoring/` for creating or updating a connector end to end
-- `.github/skills/power-automate-connector-deployment/` for deploying a connector with the repo script, `pac`, or the portal
-
-## Always-On Constraints
-
-- Use `apiDefinition.swagger.json` for OpenAPI 2.0 definitions
-- Include `apiProperties.json`, `script.csx`, and `README.md` in every connector folder
-- Keep `operationId` values and `apiProperties.json` `scriptOperations` in sync
-- Implement `public class Script : ScriptBase` with `ExecuteAsync()` returning `Task<HttpResponseMessage>`
-- Use `Context.SendAsync` for outbound HTTP requests
-- Stay inside Power Automate limits: one script file, .NET Standard 2.0-compatible namespaces, 1 MB max script size, 2 minute execution timeout
-- Validate manually in a Power Automate dev environment because there is no automated test suite in this repo
+- `.github/skills/power-automate-connector-authoring/` for end-to-end connector creation or refactoring
+- `.github/skills/power-automate-connector-deployment/` for validation, deployment, and troubleshooting
 
 ## Repo References
 
-- `connectors/RegexExtractor/` shows a well-documented multi-operation transformation connector
-- `connectors/InesssMedicaments/` shows a public scraping connector with real host settings, pagination, and deployment notes
-- `deploy-connector.ps1` is the primary automation path for deployment
+- `docs/PLATFORM_LIMITATIONS.md` for runtime constraints and allowed namespaces
+- `docs/SWAGGER_GUIDE.md` for OpenAPI 2.0 structure
+- `docs/NAMING_CONVENTIONS.md` for naming rules
+- `docs/DEPLOYMENT_GUIDE.md` for the manual portal flow
+- `connectors/RegexExtractor/` and `connectors/InesssMedicaments/` for example patterns
 
-This file is an index, not the primary workflow document. Keep new procedural guidance in skills.
+Keep durable workflows in skills and avoid duplicating long procedural guidance here.
