@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "Dataset SQL Ops",
+    "title": "Dataset SQL Operations",
     "description": "Transform user-provided JSON or CSV datasets with reusable SQL-style data actions and a raw SQL query action.",
     "version": "1.1.0",
     "contact": {
@@ -650,7 +650,7 @@
         },
         "typeOverrides": {
           "type": "object",
-          "description": "Optional map of column name to target type. Supports String, Int64, Double, Decimal, Boolean, Date, DateTime, and Timestamp.",
+          "description": "Optional map of column name to target type. Supports String, Int64, Double, Decimal, Boolean, Date, DateTime, Timestamp, Null, plus Number/Numeric as Double aliases.",
           "x-ms-summary": "Type Overrides"
         }
       }

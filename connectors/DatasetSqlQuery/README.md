@@ -1,10 +1,10 @@
-# Dataset SQL Ops
+# Dataset SQL Operations
 
 Transform user-provided datasets inside Power Automate custom connector code with reusable SQL-style actions and a raw SQL action.
 
 ## Overview
 
-`Dataset SQL Ops` accepts request-time datasets in `Json` or `Csv` format, normalizes them in memory, and runs the requested transformation through the connector SQL engine in `script.csx`.
+`Dataset SQL Operations` accepts request-time datasets in `Json` or `Csv` format, normalizes them in memory, and runs the requested transformation through the connector SQL engine in `script.csx`.
 
 ### Key capabilities
 
@@ -54,7 +54,7 @@ Each action uses the same dataset object shape.
   - `lineBreak` (`Auto`, `LF`, `CRLF`, `CR`)
   - `firstRowIsHeader`
   - `allColumnsAsString`
-- `typeOverrides` (optional): map of column name to type (`String`, `Int64`, `Double`, `Decimal`, `Boolean`, `Date`, `DateTime`, `Timestamp`, `Null`)
+- `typeOverrides` (optional): map of column name to type (`String`, `Int64`, `Double`, `Decimal`, `Boolean`, `Date`, `DateTime`, `Timestamp`, `Null`). `Number` and `Numeric` are aliases for `Double`, and `Timestamp` is an alias for `DateTime`.
 
 ## Representative requests
 

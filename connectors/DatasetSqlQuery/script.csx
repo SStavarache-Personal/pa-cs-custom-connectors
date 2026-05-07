@@ -1173,12 +1173,17 @@ public class Script : ScriptBase
         {
             byte[] data = Convert.FromBase64String(operationId);
             string decoded = Encoding.UTF8.GetString(data);
-            return Regex.IsMatch(decoded, "^[A-Za-z_][A-Za-z0-9_]*$") ? decoded : operationId;
+            return IsValidOperationId(decoded) ? decoded : operationId;
         }
         catch
         {
             return operationId;
         }
+    }
+
+    private static bool IsValidOperationId(string value)
+    {
+        return !string.IsNullOrWhiteSpace(value) && Regex.IsMatch(value, "^[A-Za-z_][A-Za-z0-9_]*$");
     }
 
     private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JObject body)
