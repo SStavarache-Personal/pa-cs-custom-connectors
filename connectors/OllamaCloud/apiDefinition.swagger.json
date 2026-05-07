@@ -1,0 +1,1177 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Ollama Cloud",
+    "description": "Call Ollama cloud chat, generation, embedding, and model endpoints with API key authentication and Power Automate-friendly request shaping.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector",
+      "email": "support@example.com"
+    }
+  },
+  "host": "ollama.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "securityDefinitions": {
+    "api_key": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Ollama API key. The connector accepts either the raw key or a full Bearer token value."
+    }
+  },
+  "security": [
+    {
+      "api_key": []
+    }
+  ],
+  "paths": {
+    "/api/chat": {
+      "post": {
+        "operationId": "GenerateChatResponse",
+        "summary": "Generate chat response",
+        "description": "Send a non-streaming chat request to Ollama cloud with messages, tools, structured output settings, and model options.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ChatRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat response generated successfully.",
+            "schema": {
+              "$ref": "#/definitions/ChatResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "502": {
+            "description": "Ollama cloud returned an upstream error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/generate": {
+      "post": {
+        "operationId": "GenerateTextResponse",
+        "summary": "Generate text response",
+        "description": "Send a non-streaming text generation request to Ollama cloud with prompt-oriented inputs and structured output settings.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/GenerateRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text response generated successfully.",
+            "schema": {
+              "$ref": "#/definitions/GenerateResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "502": {
+            "description": "Ollama cloud returned an upstream error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/embed": {
+      "post": {
+        "operationId": "GenerateEmbeddings",
+        "summary": "Generate embeddings",
+        "description": "Create embeddings for one text input or an array of text inputs using Ollama cloud.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/EmbedRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Embeddings generated successfully.",
+            "schema": {
+              "$ref": "#/definitions/EmbedResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "502": {
+            "description": "Ollama cloud returned an upstream error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/tags": {
+      "get": {
+        "operationId": "ListModels",
+        "summary": "List available models",
+        "description": "List models currently exposed through Ollama cloud.",
+        "x-ms-visibility": "important",
+        "responses": {
+          "200": {
+            "description": "Models listed successfully.",
+            "schema": {
+              "$ref": "#/definitions/ModelsResponse"
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "502": {
+            "description": "Ollama cloud returned an upstream error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/api/chat-batch": {
+      "post": {
+        "operationId": "GenerateBatchChatResponses",
+        "summary": "Generate batch chat responses",
+        "description": "Execute multiple non-streaming Ollama chat requests inside one connector action and return each result together.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/BatchChatRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch chat responses generated successfully.",
+            "schema": {
+              "$ref": "#/definitions/BatchChatResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "default": {
+            "description": "Unexpected error.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "CommonOptions": {
+      "type": "object",
+      "description": "Additional Ollama model parameters forwarded into the request options object.",
+      "additionalProperties": true
+    },
+    "FreeFormObject": {
+      "type": "object",
+      "description": "Additional request fields to merge into the outgoing Ollama payload.",
+      "additionalProperties": true
+    },
+    "JsonSchemaObject": {
+      "type": "object",
+      "description": "JSON schema used for structured outputs.",
+      "additionalProperties": true
+    },
+    "ToolDefinition": {
+      "type": "object",
+      "description": "Tool definition forwarded to Ollama.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Tool type.",
+          "x-ms-summary": "Type"
+        },
+        "function": {
+          "$ref": "#/definitions/FreeFormObject"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ToolCall": {
+      "type": "object",
+      "description": "Tool call content returned by Ollama.",
+      "additionalProperties": true
+    },
+    "ChatMessage": {
+      "type": "object",
+      "required": [
+        "role"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Message role.",
+          "enum": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
+          ],
+          "x-ms-summary": "Role",
+          "x-ms-visibility": "important"
+        },
+        "content": {
+          "type": "string",
+          "description": "Message content.",
+          "x-ms-summary": "Content",
+          "x-ms-visibility": "important"
+        },
+        "thinking": {
+          "type": "string",
+          "description": "Model thinking text for thinking models.",
+          "x-ms-summary": "Thinking",
+          "x-ms-visibility": "advanced"
+        },
+        "images": {
+          "type": "array",
+          "description": "Base64-encoded images attached to the message.",
+          "x-ms-summary": "Images",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tool_calls": {
+          "type": "array",
+          "description": "Tool calls associated with the message.",
+          "x-ms-summary": "Tool Calls",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "$ref": "#/definitions/ToolCall"
+          }
+        },
+        "tool_name": {
+          "type": "string",
+          "description": "Executed tool name for tool result messages.",
+          "x-ms-summary": "Tool Name",
+          "x-ms-visibility": "advanced"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ChatRequest": {
+      "type": "object",
+      "required": [
+        "model",
+        "messages"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Target Ollama model name.",
+          "x-ms-summary": "Model",
+          "x-ms-visibility": "important"
+        },
+        "messages": {
+          "type": "array",
+          "description": "Messages to send to the chat model.",
+          "x-ms-summary": "Messages",
+          "x-ms-visibility": "important",
+          "items": {
+            "$ref": "#/definitions/ChatMessage"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "description": "Tool definitions for tool calling.",
+          "x-ms-summary": "Tools",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "$ref": "#/definitions/ToolDefinition"
+          }
+        },
+        "think": {
+          "type": "boolean",
+          "description": "Enable thinking mode for thinking-capable models.",
+          "x-ms-summary": "Think",
+          "x-ms-visibility": "advanced"
+        },
+        "formatMode": {
+          "type": "string",
+          "description": "Structured output mode. Use schema with responseSchema or json for JSON mode.",
+          "enum": [
+            "none",
+            "json",
+            "schema"
+          ],
+          "default": "none",
+          "x-ms-summary": "Format Mode",
+          "x-ms-visibility": "advanced"
+        },
+        "responseSchema": {
+          "$ref": "#/definitions/JsonSchemaObject"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "description": "Maps to options.num_predict.",
+          "x-ms-summary": "Max Tokens",
+          "x-ms-visibility": "advanced"
+        },
+        "temperature": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.temperature.",
+          "x-ms-summary": "Temperature",
+          "x-ms-visibility": "advanced"
+        },
+        "topP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.top_p.",
+          "x-ms-summary": "Top P",
+          "x-ms-visibility": "advanced"
+        },
+        "topK": {
+          "type": "integer",
+          "description": "Maps to options.top_k.",
+          "x-ms-summary": "Top K",
+          "x-ms-visibility": "advanced"
+        },
+        "minP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.min_p.",
+          "x-ms-summary": "Min P",
+          "x-ms-visibility": "advanced"
+        },
+        "typicalP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.typical_p.",
+          "x-ms-summary": "Typical P",
+          "x-ms-visibility": "advanced"
+        },
+        "seed": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Maps to options.seed.",
+          "x-ms-summary": "Seed",
+          "x-ms-visibility": "advanced"
+        },
+        "stop": {
+          "type": "array",
+          "description": "Stop sequences mapped to options.stop.",
+          "x-ms-summary": "Stop Sequences",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repeatPenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.repeat_penalty.",
+          "x-ms-summary": "Repeat Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "presencePenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.presence_penalty.",
+          "x-ms-summary": "Presence Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "frequencyPenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.frequency_penalty.",
+          "x-ms-summary": "Frequency Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "repeatLastN": {
+          "type": "integer",
+          "description": "Maps to options.repeat_last_n.",
+          "x-ms-summary": "Repeat Last N",
+          "x-ms-visibility": "advanced"
+        },
+        "numCtx": {
+          "type": "integer",
+          "description": "Maps to options.num_ctx.",
+          "x-ms-summary": "Context Length",
+          "x-ms-visibility": "advanced"
+        },
+        "numThread": {
+          "type": "integer",
+          "description": "Maps to options.num_thread.",
+          "x-ms-summary": "Thread Count",
+          "x-ms-visibility": "advanced"
+        },
+        "numKeep": {
+          "type": "integer",
+          "description": "Maps to options.num_keep.",
+          "x-ms-summary": "Num Keep",
+          "x-ms-visibility": "advanced"
+        },
+        "keepAlive": {
+          "type": "string",
+          "description": "Maps to keep_alive.",
+          "x-ms-summary": "Keep Alive",
+          "x-ms-visibility": "advanced"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "Must be false or omitted because Power Automate cannot consume streaming chunks.",
+          "default": false,
+          "x-ms-summary": "Stream",
+          "x-ms-visibility": "advanced"
+        },
+        "options": {
+          "$ref": "#/definitions/CommonOptions"
+        },
+        "extraBody": {
+          "$ref": "#/definitions/FreeFormObject"
+        }
+      },
+      "additionalProperties": true
+    },
+    "GenerateRequest": {
+      "type": "object",
+      "required": [
+        "model",
+        "prompt"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Target Ollama model name.",
+          "x-ms-summary": "Model",
+          "x-ms-visibility": "important"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "Prompt to generate from.",
+          "x-ms-summary": "Prompt",
+          "x-ms-visibility": "important"
+        },
+        "suffix": {
+          "type": "string",
+          "description": "Optional suffix appended after generation.",
+          "x-ms-summary": "Suffix",
+          "x-ms-visibility": "advanced"
+        },
+        "images": {
+          "type": "array",
+          "description": "Base64-encoded images for multimodal generation.",
+          "x-ms-summary": "Images",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "string"
+          }
+        },
+        "think": {
+          "type": "boolean",
+          "description": "Enable thinking mode for thinking-capable models.",
+          "x-ms-summary": "Think",
+          "x-ms-visibility": "advanced"
+        },
+        "system": {
+          "type": "string",
+          "description": "System prompt override.",
+          "x-ms-summary": "System Prompt",
+          "x-ms-visibility": "advanced"
+        },
+        "template": {
+          "type": "string",
+          "description": "Prompt template override.",
+          "x-ms-summary": "Template",
+          "x-ms-visibility": "advanced"
+        },
+        "raw": {
+          "type": "boolean",
+          "description": "Disable templating in Ollama.",
+          "x-ms-summary": "Raw Prompt",
+          "x-ms-visibility": "advanced"
+        },
+        "context": {
+          "type": "array",
+          "description": "Deprecated context tokens from a prior generate response.",
+          "x-ms-summary": "Context Tokens",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "formatMode": {
+          "type": "string",
+          "description": "Structured output mode. Use schema with responseSchema or json for JSON mode.",
+          "enum": [
+            "none",
+            "json",
+            "schema"
+          ],
+          "default": "none",
+          "x-ms-summary": "Format Mode",
+          "x-ms-visibility": "advanced"
+        },
+        "responseSchema": {
+          "$ref": "#/definitions/JsonSchemaObject"
+        },
+        "maxTokens": {
+          "type": "integer",
+          "description": "Maps to options.num_predict.",
+          "x-ms-summary": "Max Tokens",
+          "x-ms-visibility": "advanced"
+        },
+        "temperature": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.temperature.",
+          "x-ms-summary": "Temperature",
+          "x-ms-visibility": "advanced"
+        },
+        "topP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.top_p.",
+          "x-ms-summary": "Top P",
+          "x-ms-visibility": "advanced"
+        },
+        "topK": {
+          "type": "integer",
+          "description": "Maps to options.top_k.",
+          "x-ms-summary": "Top K",
+          "x-ms-visibility": "advanced"
+        },
+        "minP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.min_p.",
+          "x-ms-summary": "Min P",
+          "x-ms-visibility": "advanced"
+        },
+        "typicalP": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.typical_p.",
+          "x-ms-summary": "Typical P",
+          "x-ms-visibility": "advanced"
+        },
+        "seed": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Maps to options.seed.",
+          "x-ms-summary": "Seed",
+          "x-ms-visibility": "advanced"
+        },
+        "stop": {
+          "type": "array",
+          "description": "Stop sequences mapped to options.stop.",
+          "x-ms-summary": "Stop Sequences",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "string"
+          }
+        },
+        "repeatPenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.repeat_penalty.",
+          "x-ms-summary": "Repeat Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "presencePenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.presence_penalty.",
+          "x-ms-summary": "Presence Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "frequencyPenalty": {
+          "type": "number",
+          "format": "double",
+          "description": "Maps to options.frequency_penalty.",
+          "x-ms-summary": "Frequency Penalty",
+          "x-ms-visibility": "advanced"
+        },
+        "repeatLastN": {
+          "type": "integer",
+          "description": "Maps to options.repeat_last_n.",
+          "x-ms-summary": "Repeat Last N",
+          "x-ms-visibility": "advanced"
+        },
+        "numCtx": {
+          "type": "integer",
+          "description": "Maps to options.num_ctx.",
+          "x-ms-summary": "Context Length",
+          "x-ms-visibility": "advanced"
+        },
+        "numThread": {
+          "type": "integer",
+          "description": "Maps to options.num_thread.",
+          "x-ms-summary": "Thread Count",
+          "x-ms-visibility": "advanced"
+        },
+        "numKeep": {
+          "type": "integer",
+          "description": "Maps to options.num_keep.",
+          "x-ms-summary": "Num Keep",
+          "x-ms-visibility": "advanced"
+        },
+        "keepAlive": {
+          "type": "string",
+          "description": "Maps to keep_alive.",
+          "x-ms-summary": "Keep Alive",
+          "x-ms-visibility": "advanced"
+        },
+        "stream": {
+          "type": "boolean",
+          "description": "Must be false or omitted because Power Automate cannot consume streaming chunks.",
+          "default": false,
+          "x-ms-summary": "Stream",
+          "x-ms-visibility": "advanced"
+        },
+        "options": {
+          "$ref": "#/definitions/CommonOptions"
+        },
+        "extraBody": {
+          "$ref": "#/definitions/FreeFormObject"
+        }
+      },
+      "additionalProperties": true
+    },
+    "EmbedRequest": {
+      "type": "object",
+      "required": [
+        "model"
+      ],
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Target embedding model name.",
+          "x-ms-summary": "Model",
+          "x-ms-visibility": "important"
+        },
+        "inputText": {
+          "type": "string",
+          "description": "Single text input for embeddings.",
+          "x-ms-summary": "Input Text",
+          "x-ms-visibility": "important"
+        },
+        "inputs": {
+          "type": "array",
+          "description": "Multiple text inputs for embeddings.",
+          "x-ms-summary": "Inputs",
+          "x-ms-visibility": "advanced",
+          "items": {
+            "type": "string"
+          }
+        },
+        "truncate": {
+          "type": "boolean",
+          "description": "Truncate long input instead of returning an error.",
+          "default": true,
+          "x-ms-summary": "Truncate",
+          "x-ms-visibility": "advanced"
+        },
+        "dimensions": {
+          "type": "integer",
+          "description": "Requested embedding dimensions.",
+          "x-ms-summary": "Dimensions",
+          "x-ms-visibility": "advanced"
+        },
+        "keepAlive": {
+          "type": "string",
+          "description": "Maps to keep_alive.",
+          "x-ms-summary": "Keep Alive",
+          "x-ms-visibility": "advanced"
+        },
+        "options": {
+          "$ref": "#/definitions/CommonOptions"
+        },
+        "extraBody": {
+          "$ref": "#/definitions/FreeFormObject"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ChatResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Model used for the response.",
+          "x-ms-summary": "Model"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Creation timestamp.",
+          "x-ms-summary": "Created At"
+        },
+        "message": {
+          "$ref": "#/definitions/ChatMessage"
+        },
+        "parsedMessageContent": {
+          "$ref": "#/definitions/FreeFormObject"
+        },
+        "done": {
+          "type": "boolean",
+          "description": "Whether generation is complete.",
+          "x-ms-summary": "Done"
+        },
+        "done_reason": {
+          "type": "string",
+          "description": "Reason generation ended.",
+          "x-ms-summary": "Done Reason"
+        },
+        "total_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total duration in nanoseconds.",
+          "x-ms-summary": "Total Duration"
+        },
+        "load_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Model load duration in nanoseconds.",
+          "x-ms-summary": "Load Duration"
+        },
+        "prompt_eval_count": {
+          "type": "integer",
+          "description": "Prompt token count.",
+          "x-ms-summary": "Prompt Eval Count"
+        },
+        "prompt_eval_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Prompt evaluation duration in nanoseconds.",
+          "x-ms-summary": "Prompt Eval Duration"
+        },
+        "eval_count": {
+          "type": "integer",
+          "description": "Generated token count.",
+          "x-ms-summary": "Eval Count"
+        },
+        "eval_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Generation duration in nanoseconds.",
+          "x-ms-summary": "Eval Duration"
+        }
+      },
+      "additionalProperties": true
+    },
+    "GenerateResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Model used for the response.",
+          "x-ms-summary": "Model"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Creation timestamp.",
+          "x-ms-summary": "Created At"
+        },
+        "response": {
+          "type": "string",
+          "description": "Generated text content.",
+          "x-ms-summary": "Response"
+        },
+        "parsedResponse": {
+          "$ref": "#/definitions/FreeFormObject"
+        },
+        "context": {
+          "type": "array",
+          "description": "Conversation context tokens returned by Ollama.",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "done": {
+          "type": "boolean",
+          "description": "Whether generation is complete.",
+          "x-ms-summary": "Done"
+        },
+        "done_reason": {
+          "type": "string",
+          "description": "Reason generation ended.",
+          "x-ms-summary": "Done Reason"
+        },
+        "total_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total duration in nanoseconds.",
+          "x-ms-summary": "Total Duration"
+        },
+        "load_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Model load duration in nanoseconds.",
+          "x-ms-summary": "Load Duration"
+        },
+        "prompt_eval_count": {
+          "type": "integer",
+          "description": "Prompt token count.",
+          "x-ms-summary": "Prompt Eval Count"
+        },
+        "prompt_eval_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Prompt evaluation duration in nanoseconds.",
+          "x-ms-summary": "Prompt Eval Duration"
+        },
+        "eval_count": {
+          "type": "integer",
+          "description": "Generated token count.",
+          "x-ms-summary": "Eval Count"
+        },
+        "eval_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Generation duration in nanoseconds.",
+          "x-ms-summary": "Eval Duration"
+        }
+      },
+      "additionalProperties": true
+    },
+    "EmbedResponse": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Embedding model name.",
+          "x-ms-summary": "Model"
+        },
+        "embeddings": {
+          "type": "array",
+          "description": "Generated embeddings.",
+          "x-ms-summary": "Embeddings",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        },
+        "total_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total duration in nanoseconds.",
+          "x-ms-summary": "Total Duration"
+        },
+        "load_duration": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Model load duration in nanoseconds.",
+          "x-ms-summary": "Load Duration"
+        },
+        "prompt_eval_count": {
+          "type": "integer",
+          "description": "Prompt token count.",
+          "x-ms-summary": "Prompt Eval Count"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelDetails": {
+      "type": "object",
+      "properties": {
+        "parent_model": {
+          "type": "string",
+          "description": "Parent model name.",
+          "x-ms-summary": "Parent Model"
+        },
+        "format": {
+          "type": "string",
+          "description": "Model format.",
+          "x-ms-summary": "Format"
+        },
+        "family": {
+          "type": "string",
+          "description": "Model family.",
+          "x-ms-summary": "Family"
+        },
+        "families": {
+          "type": "array",
+          "description": "Model families.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parameter_size": {
+          "type": "string",
+          "description": "Parameter size.",
+          "x-ms-summary": "Parameter Size"
+        },
+        "quantization_level": {
+          "type": "string",
+          "description": "Quantization level.",
+          "x-ms-summary": "Quantization Level"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelInfo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Model display name.",
+          "x-ms-summary": "Name"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model identifier.",
+          "x-ms-summary": "Model"
+        },
+        "modified_at": {
+          "type": "string",
+          "description": "Last modified timestamp.",
+          "x-ms-summary": "Modified At"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Model size in bytes.",
+          "x-ms-summary": "Size"
+        },
+        "digest": {
+          "type": "string",
+          "description": "Model digest.",
+          "x-ms-summary": "Digest"
+        },
+        "details": {
+          "$ref": "#/definitions/ModelDetails"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ModelsResponse": {
+      "type": "object",
+      "properties": {
+        "models": {
+          "type": "array",
+          "description": "Available models.",
+          "x-ms-summary": "Models",
+          "items": {
+            "$ref": "#/definitions/ModelInfo"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "BatchChatRequest": {
+      "type": "object",
+      "required": [
+        "requests"
+      ],
+      "properties": {
+        "stopOnError": {
+          "type": "boolean",
+          "description": "Stop processing remaining requests after the first failure.",
+          "default": false,
+          "x-ms-summary": "Stop On Error",
+          "x-ms-visibility": "advanced"
+        },
+        "requests": {
+          "type": "array",
+          "description": "Chat requests to execute sequentially.",
+          "x-ms-summary": "Requests",
+          "x-ms-visibility": "important",
+          "items": {
+            "$ref": "#/definitions/ChatRequest"
+          }
+        }
+      }
+    },
+    "BatchChatResult": {
+      "type": "object",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "description": "Zero-based request index.",
+          "x-ms-summary": "Index"
+        },
+        "isSuccess": {
+          "type": "boolean",
+          "description": "Whether the request succeeded.",
+          "x-ms-summary": "Is Success"
+        },
+        "statusCode": {
+          "type": "integer",
+          "description": "HTTP status code for this item.",
+          "x-ms-summary": "Status Code"
+        },
+        "response": {
+          "$ref": "#/definitions/FreeFormObject"
+        },
+        "error": {
+          "$ref": "#/definitions/FreeFormObject"
+        },
+        "responseText": {
+          "type": "string",
+          "description": "Raw response text when the upstream body is not JSON.",
+          "x-ms-summary": "Response Text"
+        },
+        "errorText": {
+          "type": "string",
+          "description": "Raw error text when the upstream body is not JSON.",
+          "x-ms-summary": "Error Text"
+        }
+      },
+      "additionalProperties": true
+    },
+    "BatchChatResponse": {
+      "type": "object",
+      "properties": {
+        "totalRequests": {
+          "type": "integer",
+          "description": "Number of requests submitted.",
+          "x-ms-summary": "Total Requests"
+        },
+        "successCount": {
+          "type": "integer",
+          "description": "Number of successful requests.",
+          "x-ms-summary": "Success Count"
+        },
+        "failureCount": {
+          "type": "integer",
+          "description": "Number of failed requests.",
+          "x-ms-summary": "Failure Count"
+        },
+        "results": {
+          "type": "array",
+          "description": "Individual batch request results.",
+          "x-ms-summary": "Results",
+          "items": {
+            "$ref": "#/definitions/BatchChatResult"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "description": "Machine-readable error code.",
+              "x-ms-summary": "Code"
+            },
+            "message": {
+              "type": "string",
+              "description": "Human-readable error message.",
+              "x-ms-summary": "Message"
+            },
+            "details": {
+              "$ref": "#/definitions/FreeFormObject"
+            }
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}
