@@ -1,0 +1,606 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "NIHB Drug Benefit List",
+    "description": "Downloads the public NIHB Drug Benefit List CSV, looks up benefit details by DIN or search criteria, and incrementally hydrates the CSV list into JSON.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector"
+    }
+  },
+  "host": "nihbservices.express-scripts.ca",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/dbl/csv/documents": {
+      "get": {
+        "operationId": "ListDrugBenefitListCsvDocuments",
+        "summary": "List visible DBL CSV documents",
+        "description": "Lists the CSV documents currently exposed by the public NIHB document search endpoint. A live check currently returns one active CSV, but if older versions become visible they will also appear here.",
+        "x-ms-visibility": "important",
+        "responses": {
+          "200": {
+            "description": "Successfully listed visible CSV documents.",
+            "schema": {
+              "$ref": "#/definitions/ListCsvDocumentsResponse"
+            }
+          },
+          "500": {
+            "description": "Listing failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/dbl/csv": {
+      "get": {
+        "operationId": "DownloadDrugBenefitListCsv",
+        "summary": "Download the latest DBL CSV",
+        "description": "Downloads the latest visible NIHB Drug Benefit List CSV or a specific documentId, and can return either base64 or plain text.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "documentId",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "description": "Optional NIHB documentId to download a specific CSV document. If omitted, the latest visible CSV is used.",
+            "x-ms-summary": "Document ID",
+            "x-ms-visibility": "advanced"
+          },
+          {
+            "name": "responseFormat",
+            "in": "query",
+            "type": "string",
+            "required": false,
+            "default": "Base64",
+            "enum": [
+              "Base64",
+              "Text"
+            ],
+            "description": "Choose Base64 or Text. Text avoids base64 expansion and produces a smaller response.",
+            "x-ms-summary": "Response Format"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully downloaded the latest CSV document.",
+            "schema": {
+              "$ref": "#/definitions/CsvDownloadResponse"
+            }
+          },
+          "500": {
+            "description": "Download failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/dbl/items/search": {
+      "post": {
+        "operationId": "SearchDrugBenefits",
+        "summary": "Search NIHB benefit items",
+        "description": "Queries the NIHB online drug benefit endpoint with a DIN or other search criteria and returns the matching items.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Search criteria for the online drug benefit endpoint.",
+            "schema": {
+              "$ref": "#/definitions/SearchDrugBenefitsRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved matching NIHB items.",
+            "schema": {
+              "$ref": "#/definitions/SearchDrugBenefitsResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid search criteria.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Lookup failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/dbl/items/hydrate": {
+      "post": {
+        "operationId": "HydrateDrugBenefitList",
+        "summary": "Hydrate the CSV list to JSON",
+        "description": "Starts from the latest NIHB Drug Benefit List CSV, extracts DINs, fetches as many detailed item records as possible within a 100 second safety window, and returns remaining DINs for the next flow step.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": false,
+            "description": "Optional continuation input from a previous run.",
+            "schema": {
+              "$ref": "#/definitions/HydrateDrugBenefitListRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully fetched a chunk of NIHB detail records.",
+            "schema": {
+              "$ref": "#/definitions/HydrateDrugBenefitListResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid request body.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Hydration failed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DocumentMetadata": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Document file name returned by NIHB.",
+          "x-ms-summary": "File Name"
+        },
+        "documentId": {
+          "type": "string",
+          "description": "Document identifier required by the download endpoint.",
+          "x-ms-summary": "Document ID"
+        },
+        "effectiveDate": {
+          "type": "string",
+          "description": "Effective date reported by NIHB in yyyyMMdd form.",
+          "x-ms-summary": "Effective Date"
+        },
+        "updatedDate": {
+          "type": "string",
+          "description": "Updated date reported by NIHB.",
+          "x-ms-summary": "Updated Date"
+        },
+        "status": {
+          "type": "string",
+          "description": "Document status returned by NIHB.",
+          "x-ms-summary": "Status"
+        },
+        "province": {
+          "type": "string",
+          "description": "Province code returned by NIHB for the document row.",
+          "x-ms-summary": "Province"
+        }
+      }
+    },
+    "ListCsvDocumentsResponse": {
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "integer",
+          "description": "Count of visible CSV documents returned by the NIHB search endpoint.",
+          "x-ms-summary": "Count"
+        },
+        "documents": {
+          "type": "array",
+          "description": "Visible NIHB CSV document metadata.",
+          "items": {
+            "$ref": "#/definitions/DocumentMetadata"
+          }
+        },
+        "note": {
+          "type": "string",
+          "description": "Implementation note about current public version visibility.",
+          "x-ms-summary": "Note"
+        }
+      }
+    },
+    "CsvDownloadResponse": {
+      "type": "object",
+      "properties": {
+        "document": {
+          "$ref": "#/definitions/DocumentMetadata"
+        },
+        "downloadedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp when the connector downloaded the CSV.",
+          "x-ms-summary": "Downloaded At"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Content type for the returned payload.",
+          "x-ms-summary": "Content Type"
+        },
+        "responseFormat": {
+          "type": "string",
+          "description": "Whether the connector returned Base64 or Text.",
+          "x-ms-summary": "Response Format"
+        },
+        "contentBase64": {
+          "type": "string",
+          "description": "CSV file content encoded as base64.",
+          "x-ms-summary": "Content Base64"
+        },
+        "contentText": {
+          "type": "string",
+          "description": "CSV file content as plain text when responseFormat is Text.",
+          "x-ms-summary": "Content Text"
+        },
+        "lineCount": {
+          "type": "integer",
+          "description": "Number of non-empty lines in the decoded CSV.",
+          "x-ms-summary": "Line Count"
+        },
+        "dinCount": {
+          "type": "integer",
+          "description": "Distinct DIN values extracted from the CSV.",
+          "x-ms-summary": "DIN Count"
+        }
+      }
+    },
+    "SearchDrugBenefitsRequest": {
+      "type": "object",
+      "properties": {
+        "itemNumber": {
+          "type": "string",
+          "description": "DIN or NIHB item number. Numeric values are normalized to 8 digits.",
+          "x-ms-summary": "DIN"
+        },
+        "itemName": {
+          "type": "string",
+          "description": "Optional item name filter.",
+          "x-ms-summary": "Item Name"
+        },
+        "strength": {
+          "type": "string",
+          "description": "Optional strength filter.",
+          "x-ms-summary": "Strength",
+          "x-ms-visibility": "advanced"
+        },
+        "dosage": {
+          "type": "string",
+          "description": "Optional dosage form filter.",
+          "x-ms-summary": "Dosage",
+          "x-ms-visibility": "advanced"
+        },
+        "chemicalName": {
+          "type": "string",
+          "description": "Optional chemical name filter.",
+          "x-ms-summary": "Chemical Name",
+          "x-ms-visibility": "advanced"
+        },
+        "ahfsClass": {
+          "type": "string",
+          "description": "Optional AHFS class filter.",
+          "x-ms-summary": "AHFS Class",
+          "x-ms-visibility": "advanced"
+        },
+        "manufacture": {
+          "type": "string",
+          "description": "Optional manufacturer filter.",
+          "x-ms-summary": "Manufacturer",
+          "x-ms-visibility": "advanced"
+        },
+        "benefitCoverage": {
+          "type": "string",
+          "description": "Optional benefit coverage filter.",
+          "x-ms-summary": "Benefit Coverage",
+          "x-ms-visibility": "advanced"
+        },
+        "pharmacyItemReviewStatus": {
+          "type": "string",
+          "description": "Optional review status filter.",
+          "x-ms-summary": "Review Status",
+          "x-ms-visibility": "advanced"
+        },
+        "language": {
+          "type": "string",
+          "default": "E",
+          "enum": [
+            "E",
+            "F"
+          ],
+          "description": "Search language sent to NIHB.",
+          "x-ms-summary": "Language"
+        }
+      }
+    },
+    "ItemCoverage": {
+      "type": "object",
+      "properties": {
+        "jurisdictionCode": {
+          "type": "string",
+          "description": "Province or territory code.",
+          "x-ms-summary": "Jurisdiction"
+        },
+        "effectiveDate": {
+          "type": "string",
+          "description": "Coverage effective date in yyyyMMdd form.",
+          "x-ms-summary": "Effective Date"
+        },
+        "benefitStatus": {
+          "type": "string",
+          "description": "Benefit status code returned by NIHB.",
+          "x-ms-summary": "Benefit Status"
+        },
+        "expireDate": {
+          "type": "string",
+          "description": "Coverage expiry date in yyyyMMdd form.",
+          "x-ms-summary": "Expire Date"
+        },
+        "itemNumber": {
+          "type": "string",
+          "description": "DIN for the coverage row.",
+          "x-ms-summary": "DIN"
+        }
+      }
+    },
+    "DrugBenefitItem": {
+      "type": "object",
+      "properties": {
+        "itemName": {
+          "type": "string",
+          "description": "Item name returned by NIHB.",
+          "x-ms-summary": "Item Name"
+        },
+        "chemicalName": {
+          "type": "string",
+          "description": "Chemical name returned by NIHB.",
+          "x-ms-summary": "Chemical Name"
+        },
+        "ahfsClassDesc": {
+          "type": "string",
+          "description": "AHFS class description.",
+          "x-ms-summary": "AHFS Description"
+        },
+        "manufacture": {
+          "type": "string",
+          "description": "Manufacturer name.",
+          "x-ms-summary": "Manufacturer"
+        },
+        "manufactureCode": {
+          "type": "string",
+          "description": "Manufacturer code when present.",
+          "x-ms-summary": "Manufacturer Code"
+        },
+        "dosage": {
+          "type": "string",
+          "description": "Dosage form.",
+          "x-ms-summary": "Dosage"
+        },
+        "strength": {
+          "type": "string",
+          "description": "Strength text.",
+          "x-ms-summary": "Strength"
+        },
+        "addedDate": {
+          "type": "string",
+          "description": "Added date when present.",
+          "x-ms-summary": "Added Date"
+        },
+        "removedDate": {
+          "type": "string",
+          "description": "Removed date when present.",
+          "x-ms-summary": "Removed Date"
+        },
+        "itemCoverages": {
+          "type": "array",
+          "description": "Coverage rows for the item.",
+          "items": {
+            "$ref": "#/definitions/ItemCoverage"
+          }
+        },
+        "itemCoveragesReviews": {
+          "type": "array",
+          "description": "Coverage review rows when present.",
+          "items": {
+            "type": "object"
+          }
+        },
+        "itemNumber": {
+          "type": "string",
+          "description": "DIN or NIHB item number.",
+          "x-ms-summary": "DIN"
+        },
+        "ahfsClass": {
+          "type": "integer",
+          "description": "AHFS class numeric code.",
+          "x-ms-summary": "AHFS Class"
+        },
+        "limitedUserCriteria": {
+          "type": "string",
+          "description": "Limited use criteria in English.",
+          "x-ms-summary": "Limited Use Criteria"
+        },
+        "covCriteriaTherapeuticNote": {
+          "type": "string",
+          "description": "Therapeutic note in English.",
+          "x-ms-summary": "Therapeutic Note"
+        },
+        "limitedUserCriteriaFR": {
+          "type": "string",
+          "description": "Limited use criteria in French.",
+          "x-ms-summary": "Limited Use Criteria FR"
+        },
+        "covCriteriaTherapeuticNoteFR": {
+          "type": "string",
+          "description": "Therapeutic note in French.",
+          "x-ms-summary": "Therapeutic Note FR"
+        }
+      }
+    },
+    "SearchDrugBenefitsResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "boolean",
+          "description": "Status flag returned by NIHB.",
+          "x-ms-summary": "Status"
+        },
+        "errorCode": {
+          "type": "string",
+          "description": "Error code returned by NIHB.",
+          "x-ms-summary": "Error Code"
+        },
+        "exceptionMessage": {
+          "type": "string",
+          "description": "Exception message returned by NIHB.",
+          "x-ms-summary": "Exception Message"
+        },
+        "count": {
+          "type": "integer",
+          "description": "Number of matching items.",
+          "x-ms-summary": "Count"
+        },
+        "items": {
+          "type": "array",
+          "description": "Matching NIHB items.",
+          "items": {
+            "$ref": "#/definitions/DrugBenefitItem"
+          }
+        }
+      }
+    },
+    "HydrateDrugBenefitListRequest": {
+      "type": "object",
+      "properties": {
+        "remainingItemNumbers": {
+          "type": "array",
+          "description": "Optional DINs still to fetch from a previous connector run.",
+          "x-ms-summary": "Remaining DINs",
+          "items": {
+            "type": "string"
+          }
+        },
+        "language": {
+          "type": "string",
+          "default": "E",
+          "enum": [
+            "E",
+            "F"
+          ],
+          "description": "Search language sent to NIHB during hydration.",
+          "x-ms-summary": "Language"
+        },
+        "maxRuntimeSeconds": {
+          "type": "integer",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum runtime budget for NIHB lookups. Values above 100 are clamped to 100.",
+          "x-ms-summary": "Max Runtime Seconds",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "HydrateDrugBenefitListResponse": {
+      "type": "object",
+      "properties": {
+        "startedFromCsv": {
+          "type": "boolean",
+          "description": "True when this run downloaded the CSV and extracted DINs itself.",
+          "x-ms-summary": "Started From CSV"
+        },
+        "document": {
+          "$ref": "#/definitions/DocumentMetadata"
+        },
+        "maxRuntimeSeconds": {
+          "type": "integer",
+          "description": "Effective runtime budget used by the connector.",
+          "x-ms-summary": "Max Runtime Seconds"
+        },
+        "timedOut": {
+          "type": "boolean",
+          "description": "True when the connector stopped because the runtime budget expired.",
+          "x-ms-summary": "Timed Out"
+        },
+        "totalItemNumbers": {
+          "type": "integer",
+          "description": "Total DIN count in the current run input.",
+          "x-ms-summary": "Total DINs"
+        },
+        "completedItemNumberCount": {
+          "type": "integer",
+          "description": "Count of DINs successfully queried during this run.",
+          "x-ms-summary": "Completed DIN Count"
+        },
+        "fetchedRecordCount": {
+          "type": "integer",
+          "description": "Count of NIHB item records returned in this run.",
+          "x-ms-summary": "Fetched Record Count"
+        },
+        "remainingItemNumberCount": {
+          "type": "integer",
+          "description": "Count of DINs that still need to be fetched.",
+          "x-ms-summary": "Remaining DIN Count"
+        },
+        "remainingItemNumbers": {
+          "type": "array",
+          "description": "DINs to pass into the next run of this action.",
+          "x-ms-summary": "Remaining DINs",
+          "items": {
+            "type": "string"
+          }
+        },
+        "records": {
+          "type": "array",
+          "description": "NIHB item records fetched during this run.",
+          "items": {
+            "$ref": "#/definitions/DrugBenefitItem"
+          }
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Error message.",
+              "x-ms-summary": "Message"
+            },
+            "code": {
+              "type": "string",
+              "description": "Error code.",
+              "x-ms-summary": "Code"
+            }
+          }
+        }
+      }
+    }
+  }
+}

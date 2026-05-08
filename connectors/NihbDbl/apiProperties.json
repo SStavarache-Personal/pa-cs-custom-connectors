@@ -1,0 +1,15 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#004C97",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "ListDrugBenefitListCsvDocuments",
+      "DownloadDrugBenefitListCsv",
+      "SearchDrugBenefits",
+      "HydrateDrugBenefitList"
+    ]
+  }
+}
