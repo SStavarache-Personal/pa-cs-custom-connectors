@@ -13,6 +13,7 @@ public class Script : ScriptBase
 {
     private const int DefaultMaxOutputRows = 100000;
     private const int AbsoluteMaxOutputRows = 1000000;
+    private static readonly Regex OperationIdPattern = new Regex("^[A-Za-z_][A-Za-z0-9_]*$", RegexOptions.CultureInvariant);
 
     public override async Task<HttpResponseMessage> ExecuteAsync()
     {
@@ -21,6 +22,22 @@ public class Script : ScriptBase
         {
             case "ExecuteDatasetSqlQuery":
                 return await HandleExecuteDatasetSqlQueryAsync().ConfigureAwait(false);
+            case "SelectDatasetRows":
+                return await HandleSelectDatasetRowsAsync().ConfigureAwait(false);
+            case "FilterDatasetRows":
+                return await HandleFilterDatasetRowsAsync().ConfigureAwait(false);
+            case "JoinDatasets":
+                return await HandleJoinDatasetsAsync().ConfigureAwait(false);
+            case "GroupDatasetRows":
+                return await HandleGroupDatasetRowsAsync().ConfigureAwait(false);
+            case "DistinctDatasetRows":
+                return await HandleDistinctDatasetRowsAsync().ConfigureAwait(false);
+            case "SortDatasetRows":
+                return await HandleSortDatasetRowsAsync().ConfigureAwait(false);
+            case "UnionDatasets":
+                return await HandleUnionDatasetsAsync().ConfigureAwait(false);
+            case "UnionAllDatasets":
+                return await HandleUnionAllDatasetsAsync().ConfigureAwait(false);
             default:
                 return CreateErrorResponse(
                     HttpStatusCode.BadRequest,
@@ -31,7 +48,52 @@ public class Script : ScriptBase
         }
     }
 
-    private async Task<HttpResponseMessage> HandleExecuteDatasetSqlQueryAsync()
+    private Task<HttpResponseMessage> HandleExecuteDatasetSqlQueryAsync()
+    {
+        return ExecuteWithParsedBodyAsync(body => body);
+    }
+
+    private Task<HttpResponseMessage> HandleSelectDatasetRowsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildSelectDatasetRowsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleFilterDatasetRowsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildFilterDatasetRowsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleJoinDatasetsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildJoinDatasetsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleGroupDatasetRowsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildGroupDatasetRowsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleDistinctDatasetRowsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildDistinctDatasetRowsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleSortDatasetRowsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(BuildSortDatasetRowsRequest);
+    }
+
+    private Task<HttpResponseMessage> HandleUnionDatasetsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(body => BuildUnionDatasetsRequest(body, false));
+    }
+
+    private Task<HttpResponseMessage> HandleUnionAllDatasetsAsync()
+    {
+        return ExecuteWithParsedBodyAsync(body => BuildUnionDatasetsRequest(body, true));
+    }
+
+    private async Task<HttpResponseMessage> ExecuteWithParsedBodyAsync(Func<JObject, JObject> requestBuilder)
     {
         DateTime started = DateTime.UtcNow;
 
@@ -39,59 +101,8 @@ public class Script : ScriptBase
         {
             string content = await this.Context.Request.Content.ReadAsStringAsync().ConfigureAwait(false);
             JObject body = ParseBody(content);
-
-            string sql = body["sql"]?.ToString();
-            string outputMode = body["outputMode"]?.ToString();
-            JArray datasetArray = body["datasets"] as JArray;
-            JObject engineOptionsBody = body["engineOptions"] as JObject;
-
-            if (string.IsNullOrWhiteSpace(sql))
-            {
-                return CreateErrorResponse(HttpStatusCode.BadRequest, "INVALID_REQUEST", "The 'sql' field is required.", null);
-            }
-
-            if (datasetArray == null || datasetArray.Count == 0)
-            {
-                return CreateErrorResponse(HttpStatusCode.BadRequest, "INVALID_REQUEST", "The 'datasets' array must contain at least one dataset.", null);
-            }
-
-            OutputMode mode;
-            if (!TryParseOutputMode(outputMode, out mode))
-            {
-                return CreateErrorResponse(
-                    HttpStatusCode.BadRequest,
-                    "INVALID_REQUEST",
-                    "The 'outputMode' field must be one of: Csv, RowsAndSchema, ObjectArray.",
-                    null
-                );
-            }
-
-            QueryExecutionOptions options = ParseExecutionOptions(engineOptionsBody);
-            Dictionary<string, RowSet> sourceTables = LoadDatasets(datasetArray, options);
-
-            SqlParser parser = new SqlParser(sql);
-            QueryNode query = parser.ParseQuery();
-
-            QueryExecutor executor = new QueryExecutor(options);
-            RowSet result = executor.ExecuteQuery(query, sourceTables);
-
-            if (result.Rows.Count > options.MaxOutputRows)
-            {
-                return CreateErrorResponse(
-                    HttpStatusCode.BadRequest,
-                    "RESULT_LIMIT_EXCEEDED",
-                    "Query produced " + result.Rows.Count + " rows which exceeds maxOutputRows (" + options.MaxOutputRows + ").",
-                    new JObject { ["rowCount"] = result.Rows.Count, ["maxOutputRows"] = options.MaxOutputRows }
-                );
-            }
-
-            JObject responsePayload = new JObject();
-            responsePayload["mode"] = mode.ToString();
-            responsePayload["rowCount"] = result.Rows.Count;
-            responsePayload["durationMs"] = (int)(DateTime.UtcNow - started).TotalMilliseconds;
-            responsePayload["result"] = FormatResult(mode, result);
-
-            return CreateJsonResponse(HttpStatusCode.OK, responsePayload);
+            JObject request = requestBuilder(body) ?? body;
+            return ExecutePreparedSqlRequest(request, started);
         }
         catch (SqlParseException ex)
         {
@@ -115,6 +126,62 @@ public class Script : ScriptBase
         }
     }
 
+    private HttpResponseMessage ExecutePreparedSqlRequest(JObject body, DateTime started)
+    {
+        string sql = body["sql"]?.ToString();
+        string outputMode = body["outputMode"]?.ToString();
+        JToken datasetsToken = body["datasets"];
+        JObject engineOptionsBody = body["engineOptions"] as JObject;
+
+        if (string.IsNullOrWhiteSpace(sql))
+        {
+            throw new DatasetException("INVALID_REQUEST", "The 'sql' field is required.", null);
+        }
+
+        if (datasetsToken != null && !(datasetsToken is JArray))
+        {
+            throw new DatasetException("INVALID_REQUEST", "The 'datasets' field must be an array when provided.", null);
+        }
+
+        JArray datasetArray = datasetsToken as JArray ?? new JArray();
+
+        OutputMode mode;
+        if (!TryParseOutputMode(outputMode, out mode))
+        {
+            throw new DatasetException(
+                "INVALID_REQUEST",
+                "The 'outputMode' field must be one of: Csv, RowsAndSchema, ObjectArray.",
+                null
+            );
+        }
+
+        QueryExecutionOptions options = ParseExecutionOptions(engineOptionsBody);
+        Dictionary<string, RowSet> sourceTables = LoadDatasets(datasetArray, options);
+
+        SqlParser parser = new SqlParser(sql);
+        QueryNode query = parser.ParseQuery();
+
+        QueryExecutor executor = new QueryExecutor(options);
+        RowSet result = executor.ExecuteQuery(query, sourceTables);
+
+        if (result.Rows.Count > options.MaxOutputRows)
+        {
+            throw new SqlExecutionException(
+                "RESULT_LIMIT_EXCEEDED",
+                "Query produced " + result.Rows.Count + " rows which exceeds maxOutputRows (" + options.MaxOutputRows + ").",
+                new JObject { ["rowCount"] = result.Rows.Count, ["maxOutputRows"] = options.MaxOutputRows }
+            );
+        }
+
+        JObject responsePayload = new JObject();
+        responsePayload["mode"] = mode.ToString();
+        responsePayload["rowCount"] = result.Rows.Count;
+        responsePayload["durationMs"] = (int)(DateTime.UtcNow - started).TotalMilliseconds;
+        responsePayload["result"] = FormatResult(mode, result);
+
+        return CreateJsonResponse(HttpStatusCode.OK, responsePayload);
+    }
+
     private static JObject ParseBody(string content)
     {
         if (string.IsNullOrWhiteSpace(content))
@@ -132,10 +199,305 @@ public class Script : ScriptBase
         }
     }
 
+
+    private static JObject BuildSelectDatasetRowsRequest(JObject body)
+    {
+        JObject dataset = GetRequiredObject(body, "dataset", "The 'dataset' field is required.");
+        string columns = GetRequiredString(body, "columns", "The 'columns' field is required.");
+        return CreateGeneratedQueryRequest(body, "SELECT " + columns + " FROM " + GetDatasetName(dataset), new[] { dataset });
+    }
+
+    private static JObject BuildFilterDatasetRowsRequest(JObject body)
+    {
+        JObject dataset = GetRequiredObject(body, "dataset", "The 'dataset' field is required.");
+        string whereClause = GetRequiredString(body, "where", "The 'where' field is required.");
+        string selectColumns = GetOptionalString(body, "selectColumns", "*");
+        return CreateGeneratedQueryRequest(body, "SELECT " + selectColumns + " FROM " + GetDatasetName(dataset) + " WHERE " + whereClause, new[] { dataset });
+    }
+
+    private static JObject BuildJoinDatasetsRequest(JObject body)
+    {
+        JObject leftDataset = GetRequiredObject(body, "leftDataset", "The 'leftDataset' field is required.");
+        JObject rightDataset = GetRequiredObject(body, "rightDataset", "The 'rightDataset' field is required.");
+        string leftName = GetDatasetName(leftDataset);
+        string rightName = GetDatasetName(rightDataset);
+        string joinType = GetRequiredString(body, "joinType", "The 'joinType' field is required.");
+        string joinClause = MapJoinType(joinType);
+        string onClause = GetRequiredString(body, "on", "The 'on' field is required.");
+        string selectColumns = body["selectColumns"]?.ToString();
+
+        if (string.IsNullOrWhiteSpace(selectColumns))
+        {
+            selectColumns = joinClause == "LEFT ANTI JOIN"
+                ? leftName + ".*"
+                : joinClause == "RIGHT ANTI JOIN"
+                    ? rightName + ".*"
+                    : leftName + ".*, " + rightName + ".*";
+        }
+
+        string sql = "SELECT " + selectColumns + " FROM " + leftName + " " + joinClause + " " + rightName + " ON " + onClause;
+        return CreateGeneratedQueryRequest(body, sql, new[] { leftDataset, rightDataset });
+    }
+
+    private static JObject BuildGroupDatasetRowsRequest(JObject body)
+    {
+        JObject dataset = GetRequiredObject(body, "dataset", "The 'dataset' field is required.");
+        JArray aggregations = GetRequiredArray(body, "aggregations", "The 'aggregations' array must contain at least one aggregation.");
+        string tableName = GetDatasetName(dataset);
+        string groupByColumns = body["groupByColumns"]?.ToString();
+        string having = body["having"]?.ToString();
+        string orderBy = body["orderBy"]?.ToString();
+        JArray rankings = body["rankings"] as JArray;
+
+        List<string> selectParts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(groupByColumns))
+        {
+            selectParts.Add(groupByColumns);
+        }
+
+        for (int i = 0; i < aggregations.Count; i++)
+        {
+            JObject aggregation = aggregations[i] as JObject;
+            if (aggregation == null)
+            {
+                throw new DatasetException("INVALID_REQUEST", "Each 'aggregations' item must be an object.", new JObject { ["index"] = i });
+            }
+            selectParts.Add(BuildAggregationExpression(aggregation));
+        }
+
+        if (selectParts.Count == 0)
+        {
+            throw new DatasetException("INVALID_REQUEST", "The group by action requires at least one summary or aggregate expression.", null);
+        }
+
+        string sql = "SELECT " + string.Join(", ", selectParts) + " FROM " + tableName;
+        if (!string.IsNullOrWhiteSpace(groupByColumns))
+        {
+            sql += " GROUP BY " + groupByColumns;
+        }
+        if (!string.IsNullOrWhiteSpace(having))
+        {
+            sql += " HAVING " + having;
+        }
+
+        if (rankings != null && rankings.Count > 0)
+        {
+            List<string> rankingSelects = new List<string> { "grouped.*" };
+            for (int i = 0; i < rankings.Count; i++)
+            {
+                JObject ranking = rankings[i] as JObject;
+                if (ranking == null)
+                {
+                    throw new DatasetException("INVALID_REQUEST", "Each 'rankings' item must be an object.", new JObject { ["index"] = i });
+                }
+                rankingSelects.Add(BuildRankingExpression(ranking));
+            }
+            sql = "SELECT " + string.Join(", ", rankingSelects) + " FROM (" + sql + ") grouped";
+        }
+
+        if (!string.IsNullOrWhiteSpace(orderBy))
+        {
+            sql += " ORDER BY " + orderBy;
+        }
+
+        return CreateGeneratedQueryRequest(body, sql, new[] { dataset });
+    }
+
+    private static JObject BuildDistinctDatasetRowsRequest(JObject body)
+    {
+        JObject dataset = GetRequiredObject(body, "dataset", "The 'dataset' field is required.");
+        string columns = GetOptionalString(body, "columns", "*");
+        return CreateGeneratedQueryRequest(body, "SELECT DISTINCT " + columns + " FROM " + GetDatasetName(dataset), new[] { dataset });
+    }
+
+    private static JObject BuildSortDatasetRowsRequest(JObject body)
+    {
+        JObject dataset = GetRequiredObject(body, "dataset", "The 'dataset' field is required.");
+        string orderBy = GetRequiredString(body, "orderBy", "The 'orderBy' field is required.");
+        string selectColumns = GetOptionalString(body, "selectColumns", "*");
+        return CreateGeneratedQueryRequest(body, "SELECT " + selectColumns + " FROM " + GetDatasetName(dataset) + " ORDER BY " + orderBy, new[] { dataset });
+    }
+
+    private static JObject BuildUnionDatasetsRequest(JObject body, bool all)
+    {
+        JArray datasets = GetRequiredArray(body, "datasets", "The 'datasets' array must contain at least two datasets.");
+        if (datasets.Count < 2)
+        {
+            throw new DatasetException("INVALID_REQUEST", "The 'datasets' array must contain at least two datasets.", null);
+        }
+
+        string columns = GetOptionalString(body, "columns", "*");
+        List<string> selects = new List<string>();
+        for (int i = 0; i < datasets.Count; i++)
+        {
+            JObject dataset = datasets[i] as JObject;
+            if (dataset == null)
+            {
+                throw new DatasetException("INVALID_REQUEST", "Each 'datasets' item must be an object.", new JObject { ["index"] = i });
+            }
+            selects.Add("SELECT " + columns + " FROM " + GetDatasetName(dataset));
+        }
+
+        string separator = all ? " UNION ALL " : " UNION ";
+        return CreateGeneratedQueryRequest(body, string.Join(separator, selects), datasets.Cast<JObject>());
+    }
+
+    private static JObject CreateGeneratedQueryRequest(JObject body, string sql, IEnumerable<JObject> datasets)
+    {
+        JObject request = new JObject();
+        request["sql"] = sql;
+        request["datasets"] = new JArray(datasets.Select(dataset => dataset.DeepClone()));
+
+        JToken outputMode = body["outputMode"];
+        if (outputMode != null)
+        {
+            request["outputMode"] = outputMode.DeepClone();
+        }
+
+        JToken engineOptions = body["engineOptions"];
+        if (engineOptions != null)
+        {
+            request["engineOptions"] = engineOptions.DeepClone();
+        }
+
+        return request;
+    }
+
+    private static JObject GetRequiredObject(JObject body, string propertyName, string message)
+    {
+        JObject value = body[propertyName] as JObject;
+        if (value == null)
+        {
+            throw new DatasetException("INVALID_REQUEST", message, null);
+        }
+        return value;
+    }
+
+    private static JArray GetRequiredArray(JObject body, string propertyName, string message)
+    {
+        JArray value = body[propertyName] as JArray;
+        if (value == null || value.Count == 0)
+        {
+            throw new DatasetException("INVALID_REQUEST", message, null);
+        }
+        return value;
+    }
+
+    private static string GetRequiredString(JObject body, string propertyName, string message)
+    {
+        string value = body[propertyName]?.ToString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new DatasetException("INVALID_REQUEST", message, null);
+        }
+        return value;
+    }
+
+    private static string GetOptionalString(JObject body, string propertyName, string defaultValue)
+    {
+        string value = body[propertyName]?.ToString();
+        return string.IsNullOrWhiteSpace(value) ? defaultValue : value;
+    }
+
+    private static string GetDatasetName(JObject dataset)
+    {
+        string name = dataset["name"]?.ToString();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DatasetException("INVALID_REQUEST", "Each dataset must include a 'name'.", null);
+        }
+        return name;
+    }
+
+    private static string BuildAggregationExpression(JObject aggregation)
+    {
+        string function = GetRequiredString(aggregation, "function", "Each aggregation requires a 'function'.").ToUpperInvariant();
+        string column = aggregation["column"]?.ToString();
+        string alias = aggregation["alias"]?.ToString();
+        bool distinct = aggregation["distinct"]?.ToObject<bool?>() ?? false;
+        string expression;
+
+        switch (function)
+        {
+            case "COUNT":
+                expression = string.IsNullOrWhiteSpace(column)
+                    ? "COUNT(*)"
+                    : "COUNT(" + (distinct ? "DISTINCT " : string.Empty) + column + ")";
+                break;
+            case "SUM":
+            case "AVG":
+            case "MIN":
+            case "MAX":
+                if (string.IsNullOrWhiteSpace(column))
+                {
+                    throw new DatasetException("INVALID_REQUEST", "Aggregation function '" + function + "' requires a 'column'.", null);
+                }
+                expression = function + "(" + (distinct ? "DISTINCT " : string.Empty) + column + ")";
+                break;
+            default:
+                throw new DatasetException("INVALID_REQUEST", "Unsupported aggregation function: " + function + ".", null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(alias))
+        {
+            expression += " AS " + alias;
+        }
+
+        return expression;
+    }
+
+    private static string BuildRankingExpression(JObject ranking)
+    {
+        string function = GetRequiredString(ranking, "function", "Each ranking requires a 'function'.").ToUpperInvariant();
+        string alias = GetRequiredString(ranking, "alias", "Each ranking requires an 'alias'.");
+        string orderBy = GetRequiredString(ranking, "orderBy", "Each ranking requires an 'orderBy'.");
+        string partitionBy = ranking["partitionByColumns"]?.ToString();
+
+        if (function != "ROW_NUMBER" && function != "RANK" && function != "DENSE_RANK")
+        {
+            throw new DatasetException("INVALID_REQUEST", "Unsupported ranking function: " + function + ".", null);
+        }
+
+        string overClause = string.IsNullOrWhiteSpace(partitionBy)
+            ? "ORDER BY " + orderBy
+            : "PARTITION BY " + partitionBy + " ORDER BY " + orderBy;
+
+        return function + "() OVER (" + overClause + ") AS " + alias;
+    }
+
+    private static string MapJoinType(string joinType)
+    {
+        switch (joinType.Trim().ToUpperInvariant())
+        {
+            case "INNER":
+                return "INNER JOIN";
+            case "LEFT":
+            case "LEFTOUTER":
+            case "LEFT OUTER":
+                return "LEFT OUTER JOIN";
+            case "RIGHT":
+            case "RIGHTOUTER":
+            case "RIGHT OUTER":
+                return "RIGHT OUTER JOIN";
+            case "LEFTANTI":
+            case "LEFT ANTI":
+                return "LEFT ANTI JOIN";
+            case "RIGHTANTI":
+            case "RIGHT ANTI":
+                return "RIGHT ANTI JOIN";
+            default:
+                throw new DatasetException("INVALID_REQUEST", "The 'joinType' field must be one of: Inner, Left, Right, LeftAnti, RightAnti.", null);
+        }
+    }
+
     private static bool TryParseOutputMode(string value, out OutputMode mode)
     {
         mode = OutputMode.RowsAndSchema;
-        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            mode = OutputMode.RowsAndSchema;
+            return true;
+        }
 
         if (value.Equals("Csv", StringComparison.OrdinalIgnoreCase))
         {
@@ -546,7 +908,10 @@ public class Script : ScriptBase
     private static bool TryParseDataType(string value, out SqlDataType dataType)
     {
         dataType = SqlDataType.String;
-        if (string.IsNullOrWhiteSpace(value)) return false;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
 
         switch (value.Trim().ToLowerInvariant())
         {
@@ -565,12 +930,17 @@ public class Script : ScriptBase
             case "decimal":
                 dataType = SqlDataType.Decimal;
                 return true;
+            case "number":
+            case "numeric":
+                dataType = SqlDataType.Double;
+                return true;
             case "boolean":
             case "bool":
                 dataType = SqlDataType.Boolean;
                 return true;
             case "datetime":
             case "date":
+            case "timestamp":
                 dataType = SqlDataType.DateTime;
                 return true;
             case "null":
@@ -803,12 +1173,18 @@ public class Script : ScriptBase
         try
         {
             byte[] data = Convert.FromBase64String(operationId);
-            return Encoding.UTF8.GetString(data);
+            string decoded = Encoding.UTF8.GetString(data);
+            return IsValidOperationId(decoded) ? decoded : operationId;
         }
         catch
         {
             return operationId;
         }
+    }
+
+    private static bool IsValidOperationId(string value)
+    {
+        return !string.IsNullOrWhiteSpace(value) && OperationIdPattern.IsMatch(value);
     }
 
     private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JObject body)
@@ -1168,8 +1544,8 @@ public class Script : ScriptBase
         public static readonly HashSet<string> KeywordSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "SELECT","FROM","WHERE","GROUP","BY","HAVING","ORDER","ASC","DESC","LIMIT","OFFSET",
-            "JOIN","INNER","LEFT","RIGHT","FULL","OUTER","CROSS","ON",
-            "AS","DISTINCT","WITH","UNION","ALL","INTERSECT","EXCEPT",
+            "JOIN","INNER","LEFT","RIGHT","FULL","OUTER","CROSS","ANTI","ON",
+            "AS","DISTINCT","WITH","UNION","ALL","INTERSECT","EXCEPT","CAST",
             "AND","OR","NOT","IS","NULL","IN","LIKE","BETWEEN",
             "CASE","WHEN","THEN","ELSE","END","OVER","PARTITION",
             "TRUE","FALSE"
@@ -1519,8 +1895,16 @@ public class Script : ScriptBase
             JoinNode join = new JoinNode();
             string joinType = "INNER";
 
-            if (MatchKeyword("LEFT")) { MatchKeyword("OUTER"); joinType = "LEFT"; }
-            else if (MatchKeyword("RIGHT")) { MatchKeyword("OUTER"); joinType = "RIGHT"; }
+            if (MatchKeyword("LEFT"))
+            {
+                if (MatchKeyword("ANTI")) joinType = "LEFTANTI";
+                else { MatchKeyword("OUTER"); joinType = "LEFT"; }
+            }
+            else if (MatchKeyword("RIGHT"))
+            {
+                if (MatchKeyword("ANTI")) joinType = "RIGHTANTI";
+                else { MatchKeyword("OUTER"); joinType = "RIGHT"; }
+            }
             else if (MatchKeyword("FULL")) { MatchKeyword("OUTER"); joinType = "FULL"; }
             else if (MatchKeyword("CROSS")) { joinType = "CROSS"; }
             else if (MatchKeyword("INNER")) { joinType = "INNER"; }
@@ -1701,6 +2085,27 @@ public class Script : ScriptBase
             if (Match(TokenKind.Identifier))
             {
                 string first = token.Text;
+                if (first.Equals("CAST", StringComparison.OrdinalIgnoreCase) && Match(TokenKind.LParen))
+                {
+                    ExprNode castInput = ParseExpression();
+                    ExpectKeyword("AS");
+                    Token typeToken = Peek();
+                    if (typeToken.Kind != TokenKind.Identifier)
+                    {
+                        throw Error("Expected data type in CAST expression.");
+                    }
+                    string targetType = Next().Text;
+                    Expect(TokenKind.RParen, "Expected ')' after CAST expression.");
+                    FunctionExprNode castFunction = new FunctionExprNode();
+                    castFunction.Name = "CAST";
+                    castFunction.Arguments = new List<ExprNode>
+                    {
+                        castInput,
+                        NewExpr(new LiteralExprNode { Value = targetType })
+                    };
+                    return NewExpr(castFunction);
+                }
+
                 string qualifier = null;
                 string name = first;
                 if (Match(TokenKind.Dot))
@@ -2018,14 +2423,82 @@ public class Script : ScriptBase
 
         private RowSet ApplyJoin(RowSet left, RowSet right, JoinNode join, ExecutionScope scope)
         {
-            RowSet output = new RowSet();
-            output.Name = left.Name;
-            output.Columns = new List<SqlColumn>(left.Columns.Count + right.Columns.Count);
-            output.Columns.AddRange(CloneColumns(left.Columns));
-            output.Columns.AddRange(CloneColumns(right.Columns));
-            output.Rows = new List<object[]>();
-
             string joinType = join.JoinType.ToUpperInvariant();
+            RowSet joinedShape = new RowSet();
+            joinedShape.Name = left.Name;
+            joinedShape.Columns = new List<SqlColumn>(left.Columns.Count + right.Columns.Count);
+            joinedShape.Columns.AddRange(CloneColumns(left.Columns));
+            joinedShape.Columns.AddRange(CloneColumns(right.Columns));
+            joinedShape.Rows = new List<object[]>();
+
+            if (joinType == "LEFTANTI" || joinType == "RIGHTANTI")
+            {
+                RowSet antiOutput = new RowSet();
+                antiOutput.Name = joinType == "LEFTANTI" ? left.Name : right.Name;
+                antiOutput.Columns = CloneColumns(joinType == "LEFTANTI" ? left.Columns : right.Columns);
+                antiOutput.Rows = new List<object[]>();
+
+                if (joinType == "LEFTANTI")
+                {
+                    for (int i = 0; i < left.Rows.Count; i++)
+                    {
+                        object[] leftRow = left.Rows[i];
+                        bool matchedAny = false;
+                        for (int j = 0; j < right.Rows.Count; j++)
+                        {
+                            object[] combined = CombineRows(leftRow, right.Rows[j]);
+                            if (IsTrue(EvaluateExpression(join.On, new EvalContext
+                            {
+                                RowSet = joinedShape,
+                                Row = combined,
+                                Scope = scope,
+                                SourceRows = joinedShape.Rows
+                            })))
+                            {
+                                matchedAny = true;
+                                break;
+                            }
+                        }
+
+                        if (!matchedAny)
+                        {
+                            antiOutput.Rows.Add(CloneRow(leftRow));
+                        }
+                    }
+                }
+                else
+                {
+                    for (int j = 0; j < right.Rows.Count; j++)
+                    {
+                        object[] rightRow = right.Rows[j];
+                        bool matchedAny = false;
+                        for (int i = 0; i < left.Rows.Count; i++)
+                        {
+                            object[] combined = CombineRows(left.Rows[i], rightRow);
+                            if (IsTrue(EvaluateExpression(join.On, new EvalContext
+                            {
+                                RowSet = joinedShape,
+                                Row = combined,
+                                Scope = scope,
+                                SourceRows = joinedShape.Rows
+                            })))
+                            {
+                                matchedAny = true;
+                                break;
+                            }
+                        }
+
+                        if (!matchedAny)
+                        {
+                            antiOutput.Rows.Add(CloneRow(rightRow));
+                        }
+                    }
+                }
+
+                return antiOutput;
+            }
+
+            RowSet output = joinedShape;
             bool[] rightMatched = new bool[right.Rows.Count];
 
             for (int i = 0; i < left.Rows.Count; i++)
@@ -2843,7 +3316,9 @@ public class Script : ScriptBase
                     if (args.Count < 2) return null;
                     return CompareSqlValues(args[0], args[1], _options.NullsSortFirst) == 0 ? null : args[0];
                 case "DATE": return ParseDateLike(args.Count > 0 ? args[0] : null, false);
-                case "DATETIME": return ParseDateLike(args.Count > 0 ? args[0] : null, true);
+                case "DATETIME":
+                case "TIMESTAMP": return ParseDateLike(args.Count > 0 ? args[0] : null, true);
+                case "CAST": return EvalCast(args);
                 case "STRFTIME": return EvalStrftime(args);
                 default: throw new SqlExecutionException("UNSUPPORTED_SQL_FEATURE", "Unsupported scalar function: " + fn.Name, null);
             }
@@ -2903,6 +3378,14 @@ public class Script : ScriptBase
         {
             string n = name.ToUpperInvariant();
             return n == "COUNT" || n == "SUM" || n == "AVG" || n == "MIN" || n == "MAX";
+        }
+
+        private static object EvalCast(List<object> args)
+        {
+            if (args.Count < 2 || args[1] == null) return null;
+            SqlDataType targetType;
+            if (!TryParseDataType(args[1].ToString(), out targetType)) return null;
+            return ConvertToType(args[0], targetType);
         }
 
         private object ResolveIdentifier(RowSet rowSet, object[] row, string qualifier, string name)
