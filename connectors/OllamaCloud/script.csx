@@ -30,14 +30,16 @@ public class Script : ScriptBase
 
     private async Task<HttpResponseMessage> HandleGenerateChatResponseAsync()
     {
-        JObject requestBody;
-        HttpResponseMessage errorResponse;
-        if (!await TryReadRequestBodyAsync(out requestBody, out errorResponse).ConfigureAwait(false))
+        RequestBodyReadResult requestReadResult = await TryReadRequestBodyAsync().ConfigureAwait(false);
+        if (!requestReadResult.IsSuccess)
         {
-            return errorResponse;
+            return requestReadResult.ErrorResponse;
         }
 
+        JObject requestBody = requestReadResult.Body;
+
         JObject payload;
+        HttpResponseMessage errorResponse;
         if (!TryPrepareChatPayload(requestBody, out payload, out errorResponse))
         {
             return errorResponse;
@@ -49,14 +51,16 @@ public class Script : ScriptBase
 
     private async Task<HttpResponseMessage> HandleGenerateTextResponseAsync()
     {
-        JObject requestBody;
-        HttpResponseMessage errorResponse;
-        if (!await TryReadRequestBodyAsync(out requestBody, out errorResponse).ConfigureAwait(false))
+        RequestBodyReadResult requestReadResult = await TryReadRequestBodyAsync().ConfigureAwait(false);
+        if (!requestReadResult.IsSuccess)
         {
-            return errorResponse;
+            return requestReadResult.ErrorResponse;
         }
 
+        JObject requestBody = requestReadResult.Body;
+
         JObject payload;
+        HttpResponseMessage errorResponse;
         if (!TryPrepareGeneratePayload(requestBody, out payload, out errorResponse))
         {
             return errorResponse;
@@ -68,14 +72,16 @@ public class Script : ScriptBase
 
     private async Task<HttpResponseMessage> HandleGenerateEmbeddingsAsync()
     {
-        JObject requestBody;
-        HttpResponseMessage errorResponse;
-        if (!await TryReadRequestBodyAsync(out requestBody, out errorResponse).ConfigureAwait(false))
+        RequestBodyReadResult requestReadResult = await TryReadRequestBodyAsync().ConfigureAwait(false);
+        if (!requestReadResult.IsSuccess)
         {
-            return errorResponse;
+            return requestReadResult.ErrorResponse;
         }
 
+        JObject requestBody = requestReadResult.Body;
+
         JObject payload;
+        HttpResponseMessage errorResponse;
         if (!TryPrepareEmbedPayload(requestBody, out payload, out errorResponse))
         {
             return errorResponse;
@@ -93,12 +99,14 @@ public class Script : ScriptBase
 
     private async Task<HttpResponseMessage> HandleGenerateBatchChatResponsesAsync()
     {
-        JObject requestBody;
-        HttpResponseMessage errorResponse;
-        if (!await TryReadRequestBodyAsync(out requestBody, out errorResponse).ConfigureAwait(false))
+        RequestBodyReadResult requestReadResult = await TryReadRequestBodyAsync().ConfigureAwait(false);
+        if (!requestReadResult.IsSuccess)
         {
-            return errorResponse;
+            return requestReadResult.ErrorResponse;
         }
+
+        JObject requestBody = requestReadResult.Body;
+        HttpResponseMessage errorResponse;
 
         JArray requests = requestBody["requests"] as JArray;
         if (requests == null || requests.Count == 0)
@@ -182,29 +190,23 @@ public class Script : ScriptBase
         return CreateJsonResponse(HttpStatusCode.OK, responseBody);
     }
 
-    private async Task<bool> TryReadRequestBodyAsync(out JObject body, out HttpResponseMessage errorResponse)
+    private async Task<RequestBodyReadResult> TryReadRequestBodyAsync()
     {
-        body = null;
-        errorResponse = null;
-
         string content = this.Context.Request.Content == null
             ? null
             : await this.Context.Request.Content.ReadAsStringAsync().ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(content))
         {
-            errorResponse = CreateErrorResponse(HttpStatusCode.BadRequest, "EMPTY_REQUEST", "Request body is required.", null);
-            return false;
+            return RequestBodyReadResult.FromError(CreateErrorResponse(HttpStatusCode.BadRequest, "EMPTY_REQUEST", "Request body is required.", null));
         }
 
         try
         {
-            body = JObject.Parse(content);
-            return true;
+            return RequestBodyReadResult.FromBody(JObject.Parse(content));
         }
         catch (JsonException ex)
         {
-            errorResponse = CreateErrorResponse(HttpStatusCode.BadRequest, "INVALID_JSON", "Request body is not valid JSON: " + ex.Message, null);
-            return false;
+            return RequestBodyReadResult.FromError(CreateErrorResponse(HttpStatusCode.BadRequest, "INVALID_JSON", "Request body is not valid JSON: " + ex.Message, null));
         }
     }
 
@@ -477,7 +479,7 @@ public class Script : ScriptBase
 
         if (payload != null)
         {
-            request.Content = new StringContent(payload.ToString(Formatting.None), Encoding.UTF8, "application/json");
+            request.Content = new StringContent(payload.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json");
         }
 
         try
@@ -716,7 +718,7 @@ public class Script : ScriptBase
     {
         return new HttpResponseMessage(statusCode)
         {
-            Content = new StringContent(body.ToString(Formatting.None), Encoding.UTF8, "application/json")
+            Content = new StringContent(body.ToString(Newtonsoft.Json.Formatting.None), Encoding.UTF8, "application/json")
         };
     }
 
@@ -764,6 +766,34 @@ public class Script : ScriptBase
                 JsonBody = errorBody,
                 RawContent = null,
                 ContentType = "application/json"
+            };
+        }
+    }
+
+    private sealed class RequestBodyReadResult
+    {
+        public JObject Body { get; private set; }
+
+        public HttpResponseMessage ErrorResponse { get; private set; }
+
+        public bool IsSuccess
+        {
+            get { return this.ErrorResponse == null; }
+        }
+
+        public static RequestBodyReadResult FromBody(JObject body)
+        {
+            return new RequestBodyReadResult
+            {
+                Body = body
+            };
+        }
+
+        public static RequestBodyReadResult FromError(HttpResponseMessage errorResponse)
+        {
+            return new RequestBodyReadResult
+            {
+                ErrorResponse = errorResponse
             };
         }
     }
