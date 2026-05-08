@@ -6,7 +6,15 @@
     "publisher": "Your Organization Name",
     "stackOwner": "",
     "scriptOperations": [
-      "ExecuteDatasetSqlQuery"
+      "ExecuteDatasetSqlQuery",
+      "SelectDatasetRows",
+      "FilterDatasetRows",
+      "JoinDatasets",
+      "GroupDatasetRows",
+      "DistinctDatasetRows",
+      "SortDatasetRows",
+      "UnionDatasets",
+      "UnionAllDatasets"
     ]
   }
 }
