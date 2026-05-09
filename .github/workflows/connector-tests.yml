@@ -1,0 +1,52 @@
+name: Connector Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore solution
+        run: dotnet restore testing/ConnectorTesting.sln
+
+      - name: Build solution
+        run: dotnet build testing/ConnectorTesting.sln --configuration Release --no-restore
+
+      - name: Run connector tests
+        run: >-
+          dotnet test testing/ConnectorTesting.sln
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=connector-tests.trx"
+          --results-directory artifacts/test-results
+          --collect:"XPlat Code Coverage"
+
+      - name: Publish test report
+        if: success() || failure()
+        uses: dorny/test-reporter@v2
+        with:
+          name: Connector Test Results
+          path: artifacts/test-results/**/*.trx
+          reporter: dotnet-trx
+
+      - name: Upload test artifacts
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connector-test-results
+          path: artifacts/test-results
+          if-no-files-found: warn

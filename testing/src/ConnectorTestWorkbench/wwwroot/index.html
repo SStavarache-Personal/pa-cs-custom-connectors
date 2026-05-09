@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Connector OpenAPI Workbench</title>
+	<link rel="preconnect" href="https://unpkg.com">
+	<link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+	<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+	<div class="app-shell">
+		<header class="hero">
+			<div>
+				<p class="eyebrow">Connector OpenAPI Workbench</p>
+				<h1>Swagger-backed local testing for Power Automate custom connectors.</h1>
+				<p class="lede">The main panel is now the connector's OpenAPI 2.0 interface. Saved examples stay beside it so CI-safe scenarios and real live-network probes share the same surface.</p>
+			</div>
+			<div class="hero-note">
+				<div class="note-label">Runtime mode</div>
+				<div class="note-value">Swagger Try it out uses live network</div>
+				<p>Saved examples can stay stubbed for CI or be marked local-only when they are meant to probe real public scraping endpoints.</p>
+			</div>
+		</header>
+
+		<main class="layout">
+			<aside class="sidebar">
+				<section class="panel compact-panel">
+					<div class="panel-header">
+						<h2>Connector</h2>
+						<button id="refreshButton" type="button" class="ghost-button">Refresh</button>
+					</div>
+					<label class="field-label" for="connectorSelect">Active connector</label>
+					<select id="connectorSelect"></select>
+					<div id="connectorMeta" class="meta-block"></div>
+				</section>
+
+				<section class="panel compact-panel">
+					<div class="panel-header">
+						<h2>Validation</h2>
+					</div>
+					<div id="validationList" class="issues"></div>
+				</section>
+
+				<section class="panel compact-panel examples-panel">
+					<div class="panel-header">
+						<h2>Seeded examples</h2>
+					</div>
+					<div id="exampleList" class="example-list"></div>
+				</section>
+
+				<section class="panel compact-panel">
+					<div class="panel-header">
+						<h2>Example preview</h2>
+						<button id="runSelectedExampleButton" type="button" class="accent-button">Run selected example</button>
+					</div>
+					<div id="exampleSummary" class="meta-block"></div>
+					<label class="field-label" for="exampleRequest">Request</label>
+					<textarea id="exampleRequest" readonly spellcheck="false"></textarea>
+					<label class="field-label" for="exampleExpectation">Expected</label>
+					<textarea id="exampleExpectation" readonly spellcheck="false"></textarea>
+				</section>
+			</aside>
+
+			<section class="main-column">
+				<section class="panel swagger-panel">
+					<div class="panel-header">
+						<div>
+							<h2>OpenAPI interface</h2>
+							<p class="panel-copy">Swagger Try it out runs through the local connector harness instead of Power Automate, while preserving the OpenAPI contract you deploy.</p>
+						</div>
+					</div>
+					<div id="swaggerStatus" class="status-chip neutral">Loading spec</div>
+					<div id="swagger-ui"></div>
+				</section>
+
+				<section class="panel result-panel">
+					<div class="panel-header">
+						<h2>Example result</h2>
+						<div id="resultBadge" class="status-chip neutral">Idle</div>
+					</div>
+
+					<div class="result-grid">
+						<div class="result-card">
+							<div class="field-label">HTTP status</div>
+							<div id="statusValue" class="result-value">-</div>
+						</div>
+						<div class="result-card">
+							<div class="field-label">Outbound calls</div>
+							<div id="outboundCountValue" class="result-value">0</div>
+						</div>
+						<div class="result-card">
+							<div class="field-label">Execution source</div>
+							<div id="networkModeValue" class="result-value">-</div>
+						</div>
+					</div>
+
+					<label class="field-label" for="responseHeaders">Response headers</label>
+					<textarea id="responseHeaders" readonly spellcheck="false"></textarea>
+					<label class="field-label" for="responseBody">Response body</label>
+					<textarea id="responseBody" readonly spellcheck="false" class="tall-editor"></textarea>
+					<label class="field-label" for="outboundLog">Outbound log</label>
+					<textarea id="outboundLog" readonly spellcheck="false"></textarea>
+					<div id="failureList" class="issues"></div>
+				</section>
+			</section>
+		</main>
+	</div>
+
+	<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+	<script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+	<script src="/app.js" defer></script>
+</body>
+</html>

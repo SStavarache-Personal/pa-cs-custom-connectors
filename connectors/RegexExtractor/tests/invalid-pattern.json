@@ -1,0 +1,19 @@
+{
+  "name": "Invalid regex pattern returns a 400",
+  "operationId": "TestPattern",
+  "method": "POST",
+  "relativePath": "/test",
+  "requestBody": {
+    "text": "demo",
+    "pattern": "("
+  },
+  "expected": {
+    "statusCode": 400,
+    "bodyJson": {
+      "error": {
+        "code": "INVALID_PATTERN"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

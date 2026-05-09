@@ -1,0 +1,41 @@
+{
+  "name": "RenderEmailTemplate replaces required placeholders",
+  "description": "Offline example based on the connector README request contract.",
+  "includeInAutomatedRun": true,
+  "operationId": "RenderEmailTemplate",
+  "method": "POST",
+  "relativePath": "/render-email-template",
+  "requestBody": {
+    "subjectTemplate": "Request {{RecordId}} is ready for review",
+    "bodyHtmlTemplate": "<p>Hello {{RecipientDisplayName}}, request {{RecordId}} is ready.</p>",
+    "deduplicationKeyTemplate": "{{RecordId}}::{{NotificationType}}::v{{SourceVersion}}",
+    "variableDefinition": {
+      "required": [
+        "RecordId",
+        "NotificationType",
+        "SourceVersion",
+        "RecipientDisplayName"
+      ],
+      "optional": [
+        "AssignedToDisplayName",
+        "ManagerEmail",
+        "RequestDueDate"
+      ]
+    },
+    "context": {
+      "RecordId": "12345",
+      "NotificationType": "RequestReadyForReview",
+      "SourceVersion": "18",
+      "RecipientDisplayName": "Jane Smith"
+    }
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "subject": "Request 12345 is ready for review",
+      "bodyHtml": "<p>Hello Jane Smith, request 12345 is ready.</p>",
+      "deduplicationKey": "12345::RequestReadyForReview::v18"
+    },
+    "outboundRequestCount": 0
+  }
+}

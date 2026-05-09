@@ -1,0 +1,17 @@
+{
+  "name": "GetGeneriques live",
+  "description": "Live local-only example against the public INESSS medication work plan page.",
+  "includeInAutomatedRun": false,
+  "operationId": "GetGeneriques",
+  "method": "GET",
+  "relativePath": "/generiques",
+  "allowLiveNetwork": true,
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "tableName": "Plan travail génériques"
+    },
+    "bodyTextContains": "items",
+    "outboundRequestCount": 1
+  }
+}

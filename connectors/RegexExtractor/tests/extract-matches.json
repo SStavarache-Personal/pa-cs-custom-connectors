@@ -1,0 +1,22 @@
+{
+  "name": "ExtractMatches returns captured groups",
+  "description": "Runs the regex extractor without any outbound HTTP dependency.",
+  "operationId": "ExtractMatches",
+  "method": "POST",
+  "relativePath": "/extract",
+  "requestBody": {
+    "text": "Order A12 and B34 are ready.",
+    "pattern": "(?<code>[A-Z]\\d{2})"
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "matchCount": 2
+    },
+    "jsonPathEquals": {
+      "matches[0].groups.code": "A12",
+      "matches[1].groups.code": "B34"
+    },
+    "outboundRequestCount": 0
+  }
+}

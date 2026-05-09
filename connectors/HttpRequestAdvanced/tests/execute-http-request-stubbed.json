@@ -1,0 +1,34 @@
+{
+  "name": "ExecuteHttpRequest returns a stubbed JSON payload",
+  "description": "CI-safe example that proves the connector maps upstream response metadata and body content correctly.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExecuteHttpRequest",
+  "method": "POST",
+  "relativePath": "/execute",
+  "requestBody": {
+    "url": "https://example.org/sample",
+    "method": "GET",
+    "followRedirects": false
+  },
+  "outboundStubs": [
+    {
+      "method": "GET",
+      "url": "https://example.org/sample",
+      "response": {
+        "statusCode": 200,
+        "contentType": "application/json",
+        "body": "{\"hello\":\"world\"}"
+      }
+    }
+  ],
+  "expected": {
+    "statusCode": 200,
+    "jsonPathEquals": {
+      "statusCode": 200,
+      "isSuccess": true,
+      "body": "{\"hello\":\"world\"}",
+      "finalUrl": "https://example.org/sample"
+    },
+    "outboundRequestCount": 1
+  }
+}

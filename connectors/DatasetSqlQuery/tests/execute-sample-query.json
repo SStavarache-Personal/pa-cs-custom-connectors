@@ -1,0 +1,16 @@
+{
+  "name": "ExecuteDatasetSqlQuery runs a dataset-less select",
+  "description": "Simple offline example that proves the SQL engine can execute a read-only query without any input datasets.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExecuteDatasetSqlQuery",
+  "method": "POST",
+  "relativePath": "/execute",
+  "requestBody": {
+    "sql": "select 1 as sample_value"
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyTextContains": "sample_value",
+    "outboundRequestCount": 0
+  }
+}

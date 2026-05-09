@@ -1,0 +1,17 @@
+{
+  "name": "ListModels requires an API key",
+  "description": "Offline example that verifies the connector blocks unauthenticated model-list requests before any outbound network call is made.",
+  "includeInAutomatedRun": true,
+  "operationId": "ListModels",
+  "method": "GET",
+  "relativePath": "/api/tags",
+  "expected": {
+    "statusCode": 401,
+    "bodyJson": {
+      "error": {
+        "code": "MISSING_API_KEY"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

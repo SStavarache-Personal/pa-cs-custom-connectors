@@ -144,7 +144,20 @@ See [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md) for detailed manual deployme
 | [Naming Conventions](docs/NAMING_CONVENTIONS.md) | C# and file naming standards |
 | [Swagger Guide](docs/SWAGGER_GUIDE.md) | OpenAPI 2.0 specification requirements |
 | [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Step-by-step manual deployment |
+| [Testing Workbench](testing/README.md) | Local harness, Swagger-based workbench UI, and CI workflow for connector testing |
 | [AI Agent Reference](.ai/INSTRUCTIONS.md) | Skill index and hard constraints for AI agents |
+
+---
+
+## 🧪 Local Testing
+
+This repo now includes a shared connector testing harness under `testing/`.
+
+- Run all connector validation and saved scenarios with `dotnet test testing/ConnectorTesting.sln`
+- Launch the local Swagger-based workbench UI with `dotnet run --project testing/src/ConnectorTestWorkbench/ConnectorTestWorkbench.csproj`
+- Add seeded scenarios under `connectors/<ConnectorName>/tests/*.json`, using `includeInAutomatedRun: false` for live-only manual probes
+
+See [testing/README.md](testing/README.md) for the scenario format and CI behavior.
 
 ---
 

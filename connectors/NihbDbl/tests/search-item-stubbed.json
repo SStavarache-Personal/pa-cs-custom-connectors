@@ -1,0 +1,35 @@
+{
+  "name": "SearchDrugBenefits maps the upstream payload",
+  "description": "Stubs the NIHB upstream HTTP call so the connector can run in CI without depending on the public endpoint.",
+  "operationId": "SearchDrugBenefits",
+  "method": "POST",
+  "relativePath": "/dbl/items/search",
+  "requestBody": {
+    "itemNumber": "12345",
+    "language": "en"
+  },
+  "outboundStubs": [
+    {
+      "method": "POST",
+      "urlContains": "/elasticclient/api/v1/onlineDrugBenefit/getOnlineDrugBenefitList",
+      "requestBodyContains": "12345",
+      "response": {
+        "statusCode": 200,
+        "contentType": "application/json",
+        "body": "{\"status\":true,\"errorCode\":null,\"exceptionMessage\":null,\"data\":[{\"DIN\":\"12345\",\"BENEFIT_NAME\":\"Sample Benefit\"}]}"
+      }
+    }
+  ],
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "status": true,
+      "count": 1
+    },
+    "jsonPathEquals": {
+      "items[0].DIN": "12345",
+      "items[0].BENEFIT_NAME": "Sample Benefit"
+    },
+    "outboundRequestCount": 1
+  }
+}

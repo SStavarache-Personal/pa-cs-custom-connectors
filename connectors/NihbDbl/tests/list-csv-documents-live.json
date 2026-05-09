@@ -1,0 +1,14 @@
+{
+  "name": "ListDrugBenefitListCsvDocuments live",
+  "description": "Live local-only example that queries the public NIHB document listing endpoint for visible CSV files.",
+  "includeInAutomatedRun": false,
+  "operationId": "ListDrugBenefitListCsvDocuments",
+  "method": "GET",
+  "relativePath": "/dbl/csv/documents",
+  "allowLiveNetwork": true,
+  "expected": {
+    "statusCode": 200,
+    "bodyTextContains": "documentId",
+    "outboundRequestCount": 1
+  }
+}

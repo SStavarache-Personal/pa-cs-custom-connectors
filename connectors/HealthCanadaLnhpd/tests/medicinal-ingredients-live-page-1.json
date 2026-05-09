@@ -1,0 +1,20 @@
+{
+  "name": "GetMedicinalIngredients page 1 live",
+  "description": "Live local-only example against the public Health Canada LNHPD endpoint using the first paginated medicinal ingredient page.",
+  "includeInAutomatedRun": false,
+  "operationId": "GetMedicinalIngredients",
+  "method": "GET",
+  "relativePath": "/medicinalingredient",
+  "queryString": "lang=en&page=1&outputFormat=json",
+  "allowLiveNetwork": true,
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "endpoint": "medicinalingredient",
+      "lang": "en",
+      "format": "json"
+    },
+    "bodyTextContains": "itemCount",
+    "outboundRequestCount": 1
+  }
+}
