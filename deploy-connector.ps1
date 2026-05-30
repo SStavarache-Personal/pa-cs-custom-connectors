@@ -456,6 +456,44 @@ function Write-DeploymentSuccess {
     Write-Output $Output
 }
 
+# ---- Helper: switch from create to update when the connector already exists ----
+function Invoke-ExistingConnectorUpdate {
+    param(
+        [string]$ApiDefFile,
+        [string]$TargetEnvironment,
+        [string[]]$FileArgs
+    )
+
+    Write-ColorOutput "`n  [!] Connector already exists. Switching to update mode..." "Yellow"
+
+    $existingId = Get-ExistingConnectorId -ApiDefFile $ApiDefFile -TargetEnvironment $TargetEnvironment
+
+    if (-not $existingId) {
+        Write-ColorOutput "`n================================================" "Red"
+        Write-ColorOutput "  [FAILED] Could Not Resolve Existing Connector ID" "Red"
+        Write-ColorOutput "================================================`n" "Red"
+        Write-ColorOutput "The connector already exists but we could not determine its ID automatically." "Red"
+        Write-ColorOutput "Re-run with -ConnectorId `"<guid>`" to update it explicitly." "Yellow"
+        exit 1
+    }
+
+    Write-ColorOutput "  [OK] Found existing connector: $existingId" "Green"
+
+    $updateAttempt = Invoke-Deployment -Mode "update" -FileArgs $FileArgs -ConnectorId $existingId
+
+    if ($updateAttempt.ExitCode -eq 0) {
+        Write-DeploymentSuccess -Suffix "updated" -Output $updateAttempt.Output
+        return
+    }
+
+    Write-ColorOutput "`n================================================" "Red"
+    Write-ColorOutput "  [FAILED] Update Failed" "Red"
+    Write-ColorOutput "================================================`n" "Red"
+    Write-ColorOutput "Error Output:" "Red"
+    Write-Output $updateAttempt.Output
+    exit 1
+}
+
 # ---- Main deployment logic ----
 try {
     if ($isUpdate) {
@@ -512,6 +550,8 @@ try {
             $retry = Invoke-Deployment -Mode "create" -FileArgs $fileArgs
             if ($retry.ExitCode -eq 0) {
                 Write-DeploymentSuccess -Suffix "created after re-auth" -Output $retry.Output
+            } elseif (Test-IsConnectorExistsError -CommandOutput $retry.Output) {
+                Invoke-ExistingConnectorUpdate -ApiDefFile $apiDefFile -TargetEnvironment $targetEnvironment -FileArgs $fileArgs
             } else {
                 Write-ColorOutput "`n================================================" "Red"
                 Write-ColorOutput "  [FAILED] Deployment Failed After Re-authentication" "Red"
@@ -521,34 +561,7 @@ try {
                 exit 1
             }
         } elseif (Test-IsConnectorExistsError -CommandOutput $attempt.Output) {
-            # Connector already exists — look up its ID and update instead
-            Write-ColorOutput "`n  [!] Connector already exists. Switching to update mode..." "Yellow"
-
-            $existingId = Get-ExistingConnectorId -ApiDefFile $apiDefFile -TargetEnvironment $targetEnvironment
-
-            if (-not $existingId) {
-                Write-ColorOutput "`n================================================" "Red"
-                Write-ColorOutput "  [FAILED] Could Not Resolve Existing Connector ID" "Red"
-                Write-ColorOutput "================================================`n" "Red"
-                Write-ColorOutput "The connector already exists but we could not determine its ID automatically." "Red"
-                Write-ColorOutput "Re-run with -ConnectorId `"<guid>`" to update it explicitly." "Yellow"
-                exit 1
-            }
-
-            Write-ColorOutput "  [OK] Found existing connector: $existingId" "Green"
-
-            $updateAttempt = Invoke-Deployment -Mode "update" -FileArgs $fileArgs -ConnectorId $existingId
-
-            if ($updateAttempt.ExitCode -eq 0) {
-                Write-DeploymentSuccess -Suffix "updated" -Output $updateAttempt.Output
-            } else {
-                Write-ColorOutput "`n================================================" "Red"
-                Write-ColorOutput "  [FAILED] Update Failed" "Red"
-                Write-ColorOutput "================================================`n" "Red"
-                Write-ColorOutput "Error Output:" "Red"
-                Write-Output $updateAttempt.Output
-                exit 1
-            }
+            Invoke-ExistingConnectorUpdate -ApiDefFile $apiDefFile -TargetEnvironment $targetEnvironment -FileArgs $fileArgs
         } else {
             Write-ColorOutput "`n================================================" "Red"
             Write-ColorOutput "  [FAILED] Deployment Failed" "Red"
