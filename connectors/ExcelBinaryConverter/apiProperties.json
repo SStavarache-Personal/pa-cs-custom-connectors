@@ -1,0 +1,13 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#217346",
+    "capabilities": [],
+    "policyTemplateInstances": [],
+    "publisher": "SStavarache",
+    "stackOwner": "SStavarache",
+    "scriptOperations": [
+      "ConvertToXlsx"
+    ]
+  }
+}
