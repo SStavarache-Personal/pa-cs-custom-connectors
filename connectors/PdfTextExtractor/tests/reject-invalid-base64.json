@@ -1,0 +1,20 @@
+{
+  "name": "ExtractPdfText rejects invalid base64",
+  "description": "Offline error-contract test proving malformed file content is rejected before parsing or outbound calls.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractPdfText",
+  "method": "POST",
+  "relativePath": "/pdf/extract",
+  "requestBody": {
+    "contentBytes": "not-base64!"
+  },
+  "expected": {
+    "statusCode": 400,
+    "bodyJson": {
+      "error": {
+        "code": "INVALID_BASE64"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

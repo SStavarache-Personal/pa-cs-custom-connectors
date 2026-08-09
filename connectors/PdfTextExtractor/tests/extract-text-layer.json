@@ -1,0 +1,22 @@
+{
+  "name": "ExtractPdfText reads a simple Office-style text layer",
+  "description": "Offline deterministic PDF fixture proving the connector parses a classic xref, page tree, WinAnsi font, text matrix, and Tj content without outbound calls.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractPdfText",
+  "method": "POST",
+  "relativePath": "/pdf/extract",
+  "requestBody": {
+    "contentBytes": "JVBERi0xLjQKJVRFU1QKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA2MCA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDcyIDcyMCBUZCAoT2ZmaWNlIFBERiB0ZXh0IGxheWVyIGZpeHR1cmUpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDI0NyAwMDAwMCBuIAowMDAwMDAwMzU3IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDU0CiUlRU9GCg=="
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "text": "Office PDF text layer fixture",
+      "pageCount": 1,
+      "pagesExtracted": 1,
+      "hasTextLayer": true,
+      "truncated": false
+    },
+    "outboundRequestCount": 0
+  }
+}

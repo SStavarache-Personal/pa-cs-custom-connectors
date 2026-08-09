@@ -1,0 +1,65 @@
+{
+  "name": "ExtractPdfPageChunks chunks two pages and reads trailer metadata",
+  "description": "Offline two-page PDF 1.7 fixture proving one JSON object per page, PDF Info metadata, page geometry and rotation, and deterministic Markdown-compatible text.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractPdfPageChunks",
+  "method": "POST",
+  "relativePath": "/pdf/extract-page-chunks",
+  "requestBody": {
+    "contentBytes": "JVBERi0xLjcKJVRFU1QKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA0IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA3IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA3OTIgNjEyXSAvUm90YXRlIDkwIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDcgMCBSID4+ID4+IC9Db250ZW50cyA2IDAgUiA+PgplbmRvYmoKNSAwIG9iago8PCAvTGVuZ3RoIDU3ID4+CnN0cmVhbQpCVCAvRjEgMTggVGYgNzIgNzIwIFRkIChGaXJzdCBwYWdlIG1hcmtkb3duIGNodW5rKSBUaiBFVAplbmRzdHJlYW0KZW5kb2JqCjYgMCBvYmoKPDwgL0xlbmd0aCA1OCA+PgpzdHJlYW0KQlQgL0YxIDE4IFRmIDcyIDU0MCBUZCAoU2Vjb25kIHBhZ2UgbWFya2Rvd24gY2h1bmspIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNyAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgPj4KZW5kb2JqCjggMCBvYmoKPDwgL1RpdGxlIChUd28gUGFnZSBQcm9kdWN0IE1vbm9ncmFwaCkgL0F1dGhvciAoQ29ubmVjdG9yIFRlc3RzKSAvU3ViamVjdCAoUGFnZSBjaHVuayBtZXRhZGF0YSkgL0tleXdvcmRzIChwZGYgY2h1bmtzIG1hcmtkb3duKSAvQ3JlYXRvciAoTWljcm9zb2Z0IFdvcmQgZm9yIE1pY3Jvc29mdCAzNjUpIC9Qcm9kdWNlciAoTWljcm9zb2Z0IFdvcmQgZm9yIE1pY3Jvc29mdCAzNjUpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjA4MDkxMjAwMDAtMDQnMDAnKSAvTW9kRGF0ZSAoRDoyMDI2MDgwOTEyMDUwMC0wNCcwMCcpIC9UcmFwcGVkIC9GYWxzZSA+PgplbmRvYmoKeHJlZgowIDkKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNjQgMDAwMDAgbiAKMDAwMDAwMDEyNyAwMDAwMCBuIAowMDAwMDAwMjUzIDAwMDAwIG4gCjAwMDAwMDAzOTAgMDAwMDAgbiAKMDAwMDAwMDQ5NiAwMDAwMCBuIAowMDAwMDAwNjAzIDAwMDAwIG4gCjAwMDAwMDA3MDAgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA5IC9Sb290IDEgMCBSIC9JbmZvIDggMCBSID4+CnN0YXJ0eHJlZgoxMDI2CiUlRU9GCg==",
+    "fileName": "two-page-product-monograph.pdf",
+    "startPage": 1,
+    "endPage": 2
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": [
+      {
+        "metadata": {
+          "format": "PDF 1.7",
+          "pdfVersion": "1.7",
+          "fileName": "two-page-product-monograph.pdf",
+          "fileSizeBytes": 1282,
+          "title": "Two Page Product Monograph",
+          "author": "Connector Tests",
+          "subject": "Page chunk metadata",
+          "keywords": "pdf chunks markdown",
+          "creator": "Microsoft Word for Microsoft 365",
+          "producer": "Microsoft Word for Microsoft 365",
+          "creationDate": "D:20260809120000-04'00'",
+          "modificationDate": "D:20260809120500-04'00'",
+          "trapped": "False",
+          "pageCount": 2,
+          "pageNumber": 1
+        },
+        "page": {
+        "width": 612.0,
+        "height": 792.0,
+          "rotation": 0
+        },
+        "contentType": "text/markdown",
+        "text": "First page markdown chunk",
+        "characterCount": 25,
+        "hasTextLayer": true,
+        "truncated": false
+      },
+      {
+        "metadata": {
+          "pageCount": 2,
+          "pageNumber": 2
+        },
+        "page": {
+        "width": 792.0,
+        "height": 612.0,
+          "rotation": 90
+        },
+        "contentType": "text/markdown",
+        "text": "Second page markdown chunk",
+        "characterCount": 26,
+        "hasTextLayer": true,
+        "truncated": false
+      }
+    ],
+    "outboundRequestCount": 0
+  }
+}

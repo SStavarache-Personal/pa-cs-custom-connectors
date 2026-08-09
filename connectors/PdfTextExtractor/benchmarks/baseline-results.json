@@ -1,0 +1,75 @@
+{
+  "recordedAt": "2026-08-09",
+  "dotnetSdkVersion": "8.0.423",
+  "pymupdf4llmVersion": "1.28.2",
+  "thresholds": {
+    "minimumTokenF1": 0.975,
+    "minimumTokenSequenceRatio": 0.94,
+    "maximumConnectorSeconds": 120
+  },
+  "fixtures": [
+    {
+      "fixture": {
+        "id": "health-canada-auro-irbesartan-00083665",
+        "url": "https://pdf.hres.ca/dpd_pm/00083665.PDF",
+        "sha256": "193e309f9cbe17bfd3e9e77d9ff3a2e73b1772f4bac4cd2a4001f3bc6243a25e",
+        "creator": "Microsoft® Word for Microsoft 365",
+        "description": "34-page Health Canada product monograph with tables, bullets, mixed fonts, superscripts, and tagged artifacts."
+      },
+      "fixtureBytes": 656821,
+      "connectorSeconds": 0.2727522370114457,
+      "referenceSeconds": 6.356983691002824,
+      "connectorDiagnostics": {
+        "elapsedMilliseconds": 154,
+        "pageCount": 34,
+        "pagesExtracted": 34,
+        "characterCount": 70049,
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      },
+      "metrics": {
+        "candidateTokens": 9518,
+        "referenceTokens": 9531,
+        "matchingTokens": 9451,
+        "tokenPrecision": 0.9929607060306788,
+        "tokenRecall": 0.9916063372154024,
+        "tokenF1": 0.9922830594781878,
+        "tokenSequenceRatio": 0.9649850385847026
+      },
+      "passed": true
+    },
+    {
+      "fixture": {
+        "id": "health-canada-oxaliplatin-00075769",
+        "url": "https://pdf.hres.ca/dpd_pm/00075769.PDF",
+        "sha256": "0a6e96b2ee9428a320220d90d208b7ee0ded1a419b221f01270885536a7547fe",
+        "creator": "Microsoft® Word for Microsoft 365",
+        "description": "37-page Health Canada product monograph with dense tables, bullets, symbols, and mixed simple/CID fonts."
+      },
+      "fixtureBytes": 826561,
+      "connectorSeconds": 0.28024700499372557,
+      "referenceSeconds": 6.760937478000415,
+      "connectorDiagnostics": {
+        "elapsedMilliseconds": 179,
+        "pageCount": 37,
+        "pagesExtracted": 37,
+        "characterCount": 83239,
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      },
+      "metrics": {
+        "candidateTokens": 11883,
+        "referenceTokens": 11892,
+        "matchingTokens": 11835,
+        "tokenPrecision": 0.9959606160060591,
+        "tokenRecall": 0.9952068617558022,
+        "tokenF1": 0.9955835962145111,
+        "tokenSequenceRatio": 0.9724500525762355
+      },
+      "passed": true
+    }
+  ],
+  "passed": true
+}
