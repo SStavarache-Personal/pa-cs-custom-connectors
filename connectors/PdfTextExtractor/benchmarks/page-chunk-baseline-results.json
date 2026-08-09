@@ -1,0 +1,90 @@
+{
+  "recordedAt": "2026-08-09",
+  "dotnetSdkVersion": "8.0.423",
+  "pymupdf4llmVersion": "1.28.2",
+  "thresholds": {
+    "minimumAggregateTokenF1": 0.975,
+    "minimumAggregateTokenSequenceRatio": 0.94,
+    "minimumPageTokenF1": 0.85,
+    "minimumMeanPageTokenF1": 0.97,
+    "maximumConnectorSeconds": 120
+  },
+  "fixtures": [
+    {
+      "fixture": {
+        "id": "health-canada-auro-irbesartan-00083665",
+        "url": "https://pdf.hres.ca/dpd_pm/00083665.PDF",
+        "sha256": "193e309f9cbe17bfd3e9e77d9ff3a2e73b1772f4bac4cd2a4001f3bc6243a25e",
+        "creator": "Microsoft® Word for Microsoft 365",
+        "description": "34-page Health Canada product monograph with tables, bullets, mixed fonts, superscripts, and tagged artifacts."
+      },
+      "fixtureBytes": 656821,
+      "connectorSeconds": 0.3707451919981395,
+      "referenceSeconds": 9.936700841004495,
+      "connectorDiagnostics": {
+        "elapsedMilliseconds": 205,
+        "pageCount": 34,
+        "pageChunks": 34,
+        "characterCount": 69430,
+        "hasTextLayer": true,
+        "truncated": false
+      },
+      "candidatePageChunks": 34,
+      "referencePageChunks": 34,
+      "pageCountMatches": true,
+      "metadataValid": true,
+      "metadataErrors": [],
+      "aggregateMetrics": {
+        "candidateTokens": 9518,
+        "referenceTokens": 9660,
+        "matchingTokens": 9414,
+        "tokenPrecision": 0.9890733347341879,
+        "tokenRecall": 0.9745341614906833,
+        "tokenF1": 0.9817499217853792,
+        "tokenSequenceRatio": 0.9532797997705704
+      },
+      "minimumPageTokenF1": 0.8810572687224669,
+      "meanPageTokenF1": 0.9793897056310584,
+      "passed": true
+    },
+    {
+      "fixture": {
+        "id": "health-canada-oxaliplatin-00075769",
+        "url": "https://pdf.hres.ca/dpd_pm/00075769.PDF",
+        "sha256": "0a6e96b2ee9428a320220d90d208b7ee0ded1a419b221f01270885536a7547fe",
+        "creator": "Microsoft® Word for Microsoft 365",
+        "description": "37-page Health Canada product monograph with dense tables, bullets, symbols, and mixed simple/CID fonts."
+      },
+      "fixtureBytes": 826561,
+      "connectorSeconds": 0.4742373379995115,
+      "referenceSeconds": 11.888983746001031,
+      "connectorDiagnostics": {
+        "elapsedMilliseconds": 283,
+        "pageCount": 37,
+        "pageChunks": 37,
+        "characterCount": 82563,
+        "hasTextLayer": true,
+        "truncated": false
+      },
+      "candidatePageChunks": 37,
+      "referencePageChunks": 37,
+      "pageCountMatches": true,
+      "metadataValid": true,
+      "metadataErrors": [],
+      "aggregateMetrics": {
+        "candidateTokens": 11883,
+        "referenceTokens": 11998,
+        "matchingTokens": 11722,
+        "tokenPrecision": 0.9864512328536564,
+        "tokenRecall": 0.9769961660276713,
+        "tokenF1": 0.9817009337967421,
+        "tokenSequenceRatio": 0.9618525187387463
+      },
+      "minimumPageTokenF1": 0.8783216783216782,
+      "meanPageTokenF1": 0.9795805494988652,
+      "passed": true
+    }
+  ],
+  "passed": true
+}
+

@@ -3,7 +3,7 @@
   "info": {
     "title": "PDF Text Extractor",
     "description": "Extracts the existing OCR or digital text layer from a PDF entirely inside Power Automate custom code.",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "contact": {
       "name": "Custom Connector"
     }
@@ -64,6 +64,54 @@
           }
         }
       }
+    },
+    "/pdf/extract-page-chunks": {
+      "post": {
+        "operationId": "ExtractPdfPageChunks",
+        "summary": "Extract PDF page chunks",
+        "description": "Returns a JSON array with one Markdown-compatible text chunk per selected page, repeated PDF metadata, page geometry, and extraction status.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "The PDF, optional file name, and extraction controls.",
+            "schema": {
+              "$ref": "#/definitions/ExtractPdfTextRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page chunks and metadata extracted successfully.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/PdfPageChunk"
+              }
+            }
+          },
+          "400": {
+            "description": "The input was invalid, encrypted, or used an unsupported PDF structure.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "The decoded PDF exceeded maxInputBytes.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The PDF could not be extracted.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -78,6 +126,13 @@
           "format": "byte",
           "description": "PDF file content as base64. A data URL ending in ;base64,<content> is also accepted.",
           "x-ms-summary": "PDF Content"
+        },
+        "fileName": {
+          "type": "string",
+          "maxLength": 1024,
+          "description": "Optional source file name copied into each page chunk's metadata. PDF bytes do not contain the original storage file name.",
+          "x-ms-summary": "File Name",
+          "x-ms-visibility": "advanced"
         },
         "startPage": {
           "type": "integer",
@@ -108,7 +163,7 @@
         "includePageBreaks": {
           "type": "boolean",
           "default": true,
-          "description": "Insert a Markdown-style page marker between extracted pages.",
+          "description": "Insert a Markdown-style page marker between extracted pages for ExtractPdfText. Ignored by ExtractPdfPageChunks.",
           "x-ms-summary": "Include Page Breaks",
           "x-ms-visibility": "advanced"
         },
@@ -190,6 +245,79 @@
           },
           "x-ms-summary": "Warnings"
         }
+      }
+    },
+    "PdfPageChunk": {
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/PdfDocumentMetadata"
+        },
+        "page": {
+          "$ref": "#/definitions/PdfPageGeometry"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Media type of text; always text/markdown.",
+          "x-ms-summary": "Content Type"
+        },
+        "text": {
+          "type": "string",
+          "description": "Markdown-compatible text extracted from this page.",
+          "x-ms-summary": "Page Markdown"
+        },
+        "characterCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "UTF-16 character count of this page's returned text.",
+          "x-ms-summary": "Character Count"
+        },
+        "hasTextLayer": {
+          "type": "boolean",
+          "description": "True when this page contained extractable text.",
+          "x-ms-summary": "Has Text Layer"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when the document-wide maxOutputCharacters limit ended extraction in or after this chunk.",
+          "x-ms-summary": "Truncated"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Document recovery and page-specific extraction warnings.",
+          "x-ms-summary": "Warnings"
+        }
+      }
+    },
+    "PdfDocumentMetadata": {
+      "type": "object",
+      "properties": {
+        "format": { "type": "string", "description": "PDF format and version." },
+        "pdfVersion": { "type": "string", "description": "Version parsed from the PDF header." },
+        "fileName": { "type": "string", "description": "Optional source file name supplied in the request." },
+        "fileSizeBytes": { "type": "integer", "format": "int32", "description": "Decoded PDF size in bytes." },
+        "title": { "type": "string", "description": "PDF Info Title value." },
+        "author": { "type": "string", "description": "PDF Info Author value." },
+        "subject": { "type": "string", "description": "PDF Info Subject value." },
+        "keywords": { "type": "string", "description": "PDF Info Keywords value." },
+        "creator": { "type": "string", "description": "PDF Info Creator value." },
+        "producer": { "type": "string", "description": "PDF Info Producer value." },
+        "creationDate": { "type": "string", "description": "Raw PDF Info CreationDate value." },
+        "modificationDate": { "type": "string", "description": "Raw PDF Info ModDate value." },
+        "trapped": { "type": "string", "description": "PDF Info Trapped value." },
+        "pageCount": { "type": "integer", "format": "int32", "description": "Total document pages." },
+        "pageNumber": { "type": "integer", "format": "int32", "description": "1-based page number for this chunk." }
+      }
+    },
+    "PdfPageGeometry": {
+      "type": "object",
+      "properties": {
+        "width": { "type": "number", "format": "double", "description": "Page width in PDF points." },
+        "height": { "type": "number", "format": "double", "description": "Page height in PDF points." },
+        "rotation": { "type": "integer", "format": "int32", "description": "Inherited PDF page rotation in degrees." }
       }
     },
     "ErrorResponse": {

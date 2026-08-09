@@ -25,14 +25,14 @@ FIXTURES = (
         "id": "health-canada-auro-irbesartan-00083665",
         "url": "https://pdf.hres.ca/dpd_pm/00083665.PDF",
         "sha256": "193e309f9cbe17bfd3e9e77d9ff3a2e73b1772f4bac4cd2a4001f3bc6243a25e",
-        "creator": "Microsoft Word for Microsoft 365",
+        "creator": "Microsoft® Word for Microsoft 365",
         "description": "34-page Health Canada product monograph with tables, bullets, mixed fonts, superscripts, and tagged artifacts.",
     },
     {
         "id": "health-canada-oxaliplatin-00075769",
         "url": "https://pdf.hres.ca/dpd_pm/00075769.PDF",
         "sha256": "0a6e96b2ee9428a320220d90d208b7ee0ded1a419b221f01270885536a7547fe",
-        "creator": "Microsoft Word for Microsoft 365",
+        "creator": "Microsoft® Word for Microsoft 365",
         "description": "37-page Health Canada product monograph with dense tables, bullets, symbols, and mixed simple/CID fonts.",
     },
 )
@@ -99,6 +99,7 @@ def run_connector(args: argparse.Namespace, repo_root: pathlib.Path, pdf_path: p
 def normalized_tokens(text: str) -> list[str]:
     text = unicodedata.normalize("NFKC", text).casefold()
     text = re.sub(r"---\s*page\s+\d+\s*---", " ", text)
+    text = re.sub(r"<br\s*/?>", " ", text, flags=re.IGNORECASE)
     return re.findall(r"[^\W_]+(?:[-'’][^\W_]+)*", text, flags=re.UNICODE)
 
 

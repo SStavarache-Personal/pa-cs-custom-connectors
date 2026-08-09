@@ -25,18 +25,24 @@ public class Script : ScriptBase
     public override async Task<HttpResponseMessage> ExecuteAsync()
     {
         string operationId = DecodeOperationId(this.Context.OperationId);
-        if (!string.Equals(operationId, "ExtractPdfText", StringComparison.Ordinal))
+        if (string.Equals(operationId, "ExtractPdfText", StringComparison.Ordinal))
+        {
+            return await HandleExtractPdfAsync(false).ConfigureAwait(false);
+        }
+        if (string.Equals(operationId, "ExtractPdfPageChunks", StringComparison.Ordinal))
+        {
+            return await HandleExtractPdfAsync(true).ConfigureAwait(false);
+        }
+        else
         {
             return CreateErrorResponse(
                 HttpStatusCode.BadRequest,
                 "UNKNOWN_OPERATION",
                 "Unknown operation: " + operationId);
         }
-
-        return await HandleExtractPdfTextAsync().ConfigureAwait(false);
     }
 
-    private async Task<HttpResponseMessage> HandleExtractPdfTextAsync()
+    private async Task<HttpResponseMessage> HandleExtractPdfAsync(bool returnPageChunks)
     {
         JObject request;
         try
@@ -90,6 +96,8 @@ public class Script : ScriptBase
             EndPage = GetNullableBoundedInteger(request, "endPage", 1, MaximumPageCount),
             IncludeArtifacts = GetBoolean(request, "includeArtifacts", false),
             IncludePageBreaks = GetBoolean(request, "includePageBreaks", true),
+            ReturnPageChunks = returnPageChunks,
+            FileName = GetOptionalString(request, "fileName", 1024),
             MaxOutputCharacters = GetBoundedInteger(
                 request,
                 "maxOutputCharacters",
@@ -102,6 +110,11 @@ public class Script : ScriptBase
         {
             var extractor = new PdfTextDocument(pdfBytes, options, this.CancellationToken);
             ExtractionResult result = extractor.Extract();
+
+            if (returnPageChunks)
+            {
+                return CreateJsonResponse(HttpStatusCode.OK, result.PageChunks);
+            }
 
             JObject responseBody = new JObject
             {
@@ -145,7 +158,10 @@ public class Script : ScriptBase
         try
         {
             string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(operationId));
-            return string.Equals(decoded, "ExtractPdfText", StringComparison.Ordinal) ? decoded : operationId;
+            return string.Equals(decoded, "ExtractPdfText", StringComparison.Ordinal) ||
+                string.Equals(decoded, "ExtractPdfPageChunks", StringComparison.Ordinal)
+                ? decoded
+                : operationId;
         }
         catch (FormatException)
         {
@@ -215,7 +231,16 @@ public class Script : ScriptBase
         return token != null && bool.TryParse(token.ToString(), out value) ? value : defaultValue;
     }
 
-    private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JObject body)
+    private static string GetOptionalString(JObject body, string name, int maximumLength)
+    {
+        JToken token = body[name];
+        if (token == null || token.Type == JTokenType.Null) return null;
+        string value = token.ToString().Trim();
+        if (value.Length == 0) return null;
+        return value.Length <= maximumLength ? value : value.Substring(0, maximumLength);
+    }
+
+    private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JToken body)
     {
         return new HttpResponseMessage(statusCode) { Content = CreateJsonContent(body.ToString(Formatting.None)) };
     }
@@ -238,6 +263,8 @@ public class Script : ScriptBase
         public int? EndPage;
         public bool IncludeArtifacts;
         public bool IncludePageBreaks;
+        public bool ReturnPageChunks;
+        public string FileName;
         public int MaxOutputCharacters;
     }
 
@@ -250,6 +277,7 @@ public class Script : ScriptBase
         public int EndPage;
         public bool HasTextLayer;
         public bool Truncated;
+        public JArray PageChunks = new JArray();
         public List<string> Warnings = new List<string>();
     }
 
@@ -845,7 +873,10 @@ public class Script : ScriptBase
             int startPage = Math.Min(Math.Max(1, this._options.StartPage), pages.Count);
             int endPage = this._options.EndPage.HasValue ? Math.Min(Math.Max(startPage, this._options.EndPage.Value), pages.Count) : pages.Count;
             var combined = new StringBuilder(Math.Min(this._options.MaxOutputCharacters, 128 * 1024));
+            var pageChunks = new JArray();
+            JObject documentMetadata = this._options.ReturnPageChunks ? CreateDocumentMetadata(catalog, pages.Count) : null;
             int pagesExtracted = 0;
+            int chunkCharacters = 0;
             bool hasText = false;
             bool truncated = false;
 
@@ -855,6 +886,55 @@ public class Script : ScriptBase
                 var interpreter = new ContentInterpreter(this, pages[pageIndex], this._options.IncludeArtifacts, this._cancellationToken);
                 string pageText = interpreter.ExtractText();
                 if (!string.IsNullOrWhiteSpace(pageText)) hasText = true;
+
+                if (this._options.ReturnPageChunks)
+                {
+                    string markdown = pageText.Trim();
+                    int remaining = Math.Max(0, this._options.MaxOutputCharacters - chunkCharacters);
+                    bool pageTruncated = markdown.Length > remaining;
+                    if (pageTruncated) markdown = markdown.Substring(0, remaining);
+                    chunkCharacters += markdown.Length;
+                    if (!pageTruncated && chunkCharacters >= this._options.MaxOutputCharacters && pageIndex + 1 < endPage)
+                    {
+                        pageTruncated = true;
+                    }
+
+                    var pageWarnings = new List<string>(this._warnings);
+                    if (string.IsNullOrWhiteSpace(pageText))
+                    {
+                        pageWarnings.Add("No extractable text layer was found on this page. This connector reads existing text layers; it does not perform OCR on page images.");
+                    }
+                    if (pageTruncated)
+                    {
+                        pageWarnings.Add("Output was truncated at maxOutputCharacters.");
+                    }
+
+                    JObject metadata = (JObject)documentMetadata.DeepClone();
+                    metadata["pageNumber"] = pageIndex + 1;
+                    pageChunks.Add(new JObject
+                    {
+                        ["metadata"] = metadata,
+                        ["page"] = new JObject
+                        {
+                            ["width"] = pages[pageIndex].Width,
+                            ["height"] = pages[pageIndex].Height,
+                            ["rotation"] = pages[pageIndex].Rotation
+                        },
+                        ["contentType"] = "text/markdown",
+                        ["text"] = markdown,
+                        ["characterCount"] = markdown.Length,
+                        ["hasTextLayer"] = !string.IsNullOrWhiteSpace(pageText),
+                        ["truncated"] = pageTruncated,
+                        ["warnings"] = new JArray(pageWarnings)
+                    });
+                    pagesExtracted++;
+                    if (pageTruncated)
+                    {
+                        truncated = true;
+                        break;
+                    }
+                    continue;
+                }
 
                 if (pagesExtracted > 0 && this._options.IncludePageBreaks)
                 {
@@ -887,8 +967,108 @@ public class Script : ScriptBase
                 EndPage = startPage + pagesExtracted - 1,
                 HasTextLayer = hasText,
                 Truncated = truncated,
+                PageChunks = pageChunks,
                 Warnings = this._warnings
             };
+        }
+
+        private JObject CreateDocumentMetadata(PdfDictionary catalog, int pageCount)
+        {
+            PdfDictionary info = AsDictionary(Resolve(this._trailer.Get("Info"))) ??
+                AsDictionary(Resolve(catalog.Get("Info")));
+            string version = FindPdfVersion(this._data);
+            return new JObject
+            {
+                ["format"] = string.IsNullOrEmpty(version) ? "PDF" : "PDF " + version,
+                ["pdfVersion"] = string.IsNullOrEmpty(version) ? JValue.CreateNull() : new JValue(version),
+                ["fileName"] = string.IsNullOrEmpty(this._options.FileName) ? JValue.CreateNull() : new JValue(this._options.FileName),
+                ["fileSizeBytes"] = this._data.Length,
+                ["title"] = MetadataToken(info, "Title"),
+                ["author"] = MetadataToken(info, "Author"),
+                ["subject"] = MetadataToken(info, "Subject"),
+                ["keywords"] = MetadataToken(info, "Keywords"),
+                ["creator"] = MetadataToken(info, "Creator"),
+                ["producer"] = MetadataToken(info, "Producer"),
+                ["creationDate"] = MetadataToken(info, "CreationDate"),
+                ["modificationDate"] = MetadataToken(info, "ModDate"),
+                ["trapped"] = MetadataToken(info, "Trapped"),
+                ["pageCount"] = pageCount
+            };
+        }
+
+        private JToken MetadataToken(PdfDictionary info, string name)
+        {
+            if (info == null) return JValue.CreateNull();
+            PdfValue value = Resolve(info.Get(name));
+            PdfString text = value as PdfString;
+            if (text != null) return new JValue(DecodeMetadataBytes(text.Bytes));
+            PdfName pdfName = value as PdfName;
+            if (pdfName != null) return new JValue(pdfName.Value);
+            PdfKeyword keyword = value as PdfKeyword;
+            return keyword == null ? JValue.CreateNull() : new JValue(keyword.Value);
+        }
+
+        private static string FindPdfVersion(byte[] data)
+        {
+            int limit = Math.Min(data.Length - 8, 1024);
+            for (int i = 0; i <= limit; i++)
+            {
+                if (!MatchesAscii(data, i, "%PDF-")) continue;
+                int start = i + 5;
+                int end = start;
+                while (end < data.Length && end - start < 16 && !IsPdfWhitespace(data[end])) end++;
+                return Encoding.ASCII.GetString(data, start, end - start);
+            }
+            return null;
+        }
+
+        private static string DecodeMetadataBytes(byte[] bytes)
+        {
+            if (bytes == null || bytes.Length == 0) return string.Empty;
+            if (bytes.Length >= 2 && bytes[0] == 0xfe && bytes[1] == 0xff)
+            {
+                var bigEndian = new StringBuilder((bytes.Length - 2) / 2);
+                for (int i = 2; i + 1 < bytes.Length; i += 2)
+                {
+                    bigEndian.Append((char)((bytes[i] << 8) | bytes[i + 1]));
+                }
+                return bigEndian.ToString();
+            }
+            if (bytes.Length >= 2 && bytes[0] == 0xff && bytes[1] == 0xfe)
+            {
+                return Encoding.Unicode.GetString(bytes, 2, bytes.Length - 2);
+            }
+
+            var result = new StringBuilder(bytes.Length);
+            for (int i = 0; i < bytes.Length; i++) result.Append(DecodePdfDocumentCharacter(bytes[i]));
+            return result.ToString();
+        }
+
+        private static char DecodePdfDocumentCharacter(byte value)
+        {
+            switch (value)
+            {
+                case 0x80: return '\u2022';
+                case 0x81: return '\u2020';
+                case 0x82: return '\u2021';
+                case 0x83: return '\u2026';
+                case 0x84: return '\u2014';
+                case 0x85: return '\u2013';
+                case 0x88: return '\u2039';
+                case 0x89: return '\u203a';
+                case 0x8a: return '\u2212';
+                case 0x8b: return '\u2030';
+                case 0x8d: return '\u201c';
+                case 0x8e: return '\u201d';
+                case 0x8f: return '\u2018';
+                case 0x90: return '\u2019';
+                case 0x92: return '\u2122';
+                case 0x93: return '\ufb01';
+                case 0x94: return '\ufb02';
+                case 0x96: return '\u0152';
+                case 0x9c: return '\u0153';
+                default: return (char)value;
+            }
         }
 
         private static void AppendWithLimit(StringBuilder builder, string value, int limit, ref bool truncated)
