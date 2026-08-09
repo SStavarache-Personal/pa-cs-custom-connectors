@@ -3,7 +3,7 @@
   "info": {
     "title": "PDF Text Extractor",
     "description": "Extracts the existing OCR or digital text layer from a PDF entirely inside Power Automate custom code.",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "contact": {
       "name": "Custom Connector"
     }
@@ -112,6 +112,79 @@
           }
         }
       }
+    },
+    "/pdf/extract-markdown": {
+      "post": {
+        "operationId": "ExtractPdfMarkdown",
+        "summary": "Extract rich PDF Markdown",
+        "description": "Converts the existing PDF text layer to rich Markdown using tagged Office structure and spatial layout: headings, lists, emphasis, superscripts, and pipe tables are preserved without replacing the plain-text operation.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "The PDF and rich-Markdown extraction controls.",
+            "schema": { "$ref": "#/definitions/ExtractPdfTextRequest" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rich Markdown extracted successfully.",
+            "schema": { "$ref": "#/definitions/ExtractPdfMarkdownResponse" }
+          },
+          "400": {
+            "description": "The input was invalid, encrypted, or used an unsupported PDF structure.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          },
+          "413": {
+            "description": "The decoded PDF exceeded maxInputBytes.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          },
+          "500": {
+            "description": "The PDF could not be extracted.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
+    },
+    "/pdf/extract-markdown-page-chunks": {
+      "post": {
+        "operationId": "ExtractPdfMarkdownPageChunks",
+        "summary": "Extract rich Markdown pages",
+        "description": "Returns a JSON array with rich Markdown, PDF metadata, page geometry, tagged-structure status, and rendered table count for every selected page.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "The PDF, optional file name, and rich-Markdown extraction controls.",
+            "schema": { "$ref": "#/definitions/ExtractPdfTextRequest" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rich Markdown page chunks and metadata extracted successfully.",
+            "schema": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/PdfMarkdownPageChunk" }
+            }
+          },
+          "400": {
+            "description": "The input was invalid, encrypted, or used an unsupported PDF structure.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          },
+          "413": {
+            "description": "The decoded PDF exceeded maxInputBytes.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          },
+          "500": {
+            "description": "The PDF could not be extracted.",
+            "schema": { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -163,7 +236,7 @@
         "includePageBreaks": {
           "type": "boolean",
           "default": true,
-          "description": "Insert a Markdown-style page marker between extracted pages for ExtractPdfText. Ignored by ExtractPdfPageChunks.",
+          "description": "Insert a Markdown page marker between extracted pages for full-document text or rich-Markdown operations. Ignored by page-chunk operations.",
           "x-ms-summary": "Include Page Breaks",
           "x-ms-visibility": "advanced"
         },
@@ -243,6 +316,128 @@
           "items": {
             "type": "string"
           },
+          "x-ms-summary": "Warnings"
+        }
+      }
+    },
+    "ExtractPdfMarkdownResponse": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Rich Markdown containing headings, lists, emphasis, superscripts, tables, and optional page separators.",
+          "x-ms-summary": "Markdown"
+        },
+        "contentType": {
+          "type": "string",
+          "description": "Media type of the returned text; always text/markdown.",
+          "x-ms-summary": "Content Type"
+        },
+        "pageCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Total pages in the PDF.",
+          "x-ms-summary": "Page Count"
+        },
+        "pagesExtracted": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Pages processed before the selected range ended or output was truncated.",
+          "x-ms-summary": "Pages Extracted"
+        },
+        "startPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Actual first extracted page.",
+          "x-ms-summary": "Start Page"
+        },
+        "endPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Actual last extracted page.",
+          "x-ms-summary": "End Page"
+        },
+        "characterCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "UTF-16 character count of Markdown.",
+          "x-ms-summary": "Character Count"
+        },
+        "hasTextLayer": {
+          "type": "boolean",
+          "description": "True when extractable text was found on at least one selected page.",
+          "x-ms-summary": "Has Text Layer"
+        },
+        "tableCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of Markdown table segments rendered across the selected pages.",
+          "x-ms-summary": "Table Count"
+        },
+        "usedTaggedStructure": {
+          "type": "boolean",
+          "description": "True when PDF structure tags informed headings, lists, or table cells.",
+          "x-ms-summary": "Used Tagged Structure"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when maxOutputCharacters stopped extraction early.",
+          "x-ms-summary": "Truncated"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "Non-fatal parser, recovery, or output warnings.",
+          "items": { "type": "string" },
+          "x-ms-summary": "Warnings"
+        }
+      }
+    },
+    "PdfMarkdownPageChunk": {
+      "type": "object",
+      "properties": {
+        "metadata": { "$ref": "#/definitions/PdfDocumentMetadata" },
+        "page": { "$ref": "#/definitions/PdfPageGeometry" },
+        "contentType": {
+          "type": "string",
+          "description": "Media type of text; always text/markdown.",
+          "x-ms-summary": "Content Type"
+        },
+        "text": {
+          "type": "string",
+          "description": "Rich Markdown extracted from this page.",
+          "x-ms-summary": "Page Markdown"
+        },
+        "characterCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "UTF-16 character count of this page's Markdown.",
+          "x-ms-summary": "Character Count"
+        },
+        "tableCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Markdown table segments rendered on this page.",
+          "x-ms-summary": "Table Count"
+        },
+        "usedTaggedStructure": {
+          "type": "boolean",
+          "description": "True when PDF structure tags informed this page's Markdown.",
+          "x-ms-summary": "Used Tagged Structure"
+        },
+        "hasTextLayer": {
+          "type": "boolean",
+          "description": "True when this page contained extractable text.",
+          "x-ms-summary": "Has Text Layer"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when the document-wide maxOutputCharacters limit ended extraction in or after this chunk.",
+          "x-ms-summary": "Truncated"
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Document recovery and page-specific extraction warnings.",
           "x-ms-summary": "Warnings"
         }
       }

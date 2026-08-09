@@ -22,6 +22,24 @@ The baseline was recorded on 2026-08-09 with .NET SDK 8.0.423. `baseline-results
 
 `page-chunk-baseline-results.json` contains the machine-readable summary. The generated `.connector.page-chunks.json`, `.pymupdf4llm.page-chunks.json`, `.connector.md`, and `.pymupdf4llm.md` files stay under `tmp/pdf-page-chunk-benchmark` so the Health Canada monographs and their full converted text are not committed.
 
+## Rich Markdown and table benchmark
+
+`benchmark_rich_markdown.py` calls `ExtractPdfMarkdown` and `ExtractPdfMarkdownPageChunks`, then compares both forms with PyMuPDF4LLM `to_markdown`. It validates repeated PDF metadata and counts headings, lists, and bold runs. Presentation markup is removed before content tokens are scored; table structure is scored separately.
+
+Tables are parsed into rows and cells, matched greedily on the same page, and evaluated with:
+
+- matched-table token F1 for content assigned to table segments;
+- mean row-count and column-count similarity;
+- greedy non-empty cell matching and mean cell token F1;
+- candidate/reference segment counts and reference coverage, reported because tagged Office structure and geometry-derived tables do not always choose the same segmentation.
+
+| Health Canada fixture | Document F1 | Ordered ratio | Mean page F1 | Table F1 | Cell F1 | Row similarity | Column similarity | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Auro-Irbesartan, `00083665` | 0.989958 | 0.983650 | 0.986625 | 0.968929 | 0.958943 | 0.853265 | 1.000000 | Pass |
+| Oxaliplatin, `00075769` | 0.986910 | 0.983291 | 0.983950 | 0.892455 | 0.927125 | 0.934264 | 0.983333 | Pass |
+
+`rich-markdown-baseline-results.json` contains the complete machine-readable report. Generated connector/reference full Markdown and page-chunk JSON are written below `tmp/` and are intentionally not committed.
+
 ## Metrics
 
 Text is Unicode NFKC-normalized and case-folded, page markers and PyMuPDF4LLM table `<br>` markup are removed, and word tokens retain internal apostrophes and hyphens. Removing `<br>` is essential: it is Markdown presentation, not a word from the source document.
@@ -30,6 +48,7 @@ Text is Unicode NFKC-normalized and case-folded, page markers and PyMuPDF4LLM ta
 - **Ordered-token ratio** uses Python's `difflib.SequenceMatcher`. This exposes reading-order mistakes that multiset overlap would miss.
 - Every fixture must reach F1 `0.975`, ordered-token ratio `0.94`, and connector wall time below 120 seconds.
 - Page chunks must additionally align one-for-one, match PDF metadata, reach minimum individual-page F1 `0.85`, and reach mean page F1 `0.97`.
+- Rich Markdown must reach document F1 `0.97`, ordered ratio `0.94`, mean page F1 `0.96`, matched-table F1 `0.88`, and mean matched-cell F1 `0.70`.
 
 This is a deliberately demanding comparison: PyMuPDF4LLM is a mature native PDF stack, while the candidate is a single dependency-free C# custom-code file constrained to the Power Automate runtime.
 
@@ -45,6 +64,8 @@ dotnet build testing/PdfTextExtractorRunner/PdfTextExtractorRunner.csproj -c Rel
 python connectors/PdfTextExtractor/benchmarks/benchmark.py \
   --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
 python connectors/PdfTextExtractor/benchmarks/benchmark_page_chunks.py \
+  --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
+python connectors/PdfTextExtractor/benchmarks/benchmark_rich_markdown.py \
   --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
 ```
 

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -21,17 +22,27 @@ public class Script : ScriptBase
     private const int MaximumDecodedStreamBytes = 32 * 1024 * 1024;
     private const long MaximumTotalDecodedStreamBytes = 96L * 1024 * 1024;
     private const int MaximumTextFragmentsPerPage = 250000;
+    private const int MaximumStructureElements = 500000;
+    private const int MaximumStructureDepth = 128;
 
     public override async Task<HttpResponseMessage> ExecuteAsync()
     {
         string operationId = DecodeOperationId(this.Context.OperationId);
         if (string.Equals(operationId, "ExtractPdfText", StringComparison.Ordinal))
         {
-            return await HandleExtractPdfAsync(false).ConfigureAwait(false);
+            return await HandleExtractPdfAsync(false, false).ConfigureAwait(false);
         }
         if (string.Equals(operationId, "ExtractPdfPageChunks", StringComparison.Ordinal))
         {
-            return await HandleExtractPdfAsync(true).ConfigureAwait(false);
+            return await HandleExtractPdfAsync(true, false).ConfigureAwait(false);
+        }
+        if (string.Equals(operationId, "ExtractPdfMarkdown", StringComparison.Ordinal))
+        {
+            return await HandleExtractPdfAsync(false, true).ConfigureAwait(false);
+        }
+        if (string.Equals(operationId, "ExtractPdfMarkdownPageChunks", StringComparison.Ordinal))
+        {
+            return await HandleExtractPdfAsync(true, true).ConfigureAwait(false);
         }
         else
         {
@@ -42,7 +53,7 @@ public class Script : ScriptBase
         }
     }
 
-    private async Task<HttpResponseMessage> HandleExtractPdfAsync(bool returnPageChunks)
+    private async Task<HttpResponseMessage> HandleExtractPdfAsync(bool returnPageChunks, bool richMarkdown)
     {
         JObject request;
         try
@@ -97,6 +108,7 @@ public class Script : ScriptBase
             IncludeArtifacts = GetBoolean(request, "includeArtifacts", false),
             IncludePageBreaks = GetBoolean(request, "includePageBreaks", true),
             ReturnPageChunks = returnPageChunks,
+            RichMarkdown = richMarkdown,
             FileName = GetOptionalString(request, "fileName", 1024),
             MaxOutputCharacters = GetBoundedInteger(
                 request,
@@ -128,6 +140,12 @@ public class Script : ScriptBase
                 ["truncated"] = result.Truncated,
                 ["warnings"] = new JArray(result.Warnings)
             };
+            if (richMarkdown)
+            {
+                responseBody["contentType"] = "text/markdown";
+                responseBody["tableCount"] = result.TableCount;
+                responseBody["usedTaggedStructure"] = result.UsedTaggedStructure;
+            }
 
             return CreateJsonResponse(HttpStatusCode.OK, responseBody);
         }
@@ -159,7 +177,9 @@ public class Script : ScriptBase
         {
             string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(operationId));
             return string.Equals(decoded, "ExtractPdfText", StringComparison.Ordinal) ||
-                string.Equals(decoded, "ExtractPdfPageChunks", StringComparison.Ordinal)
+                string.Equals(decoded, "ExtractPdfPageChunks", StringComparison.Ordinal) ||
+                string.Equals(decoded, "ExtractPdfMarkdown", StringComparison.Ordinal) ||
+                string.Equals(decoded, "ExtractPdfMarkdownPageChunks", StringComparison.Ordinal)
                 ? decoded
                 : operationId;
         }
@@ -264,6 +284,7 @@ public class Script : ScriptBase
         public bool IncludeArtifacts;
         public bool IncludePageBreaks;
         public bool ReturnPageChunks;
+        public bool RichMarkdown;
         public string FileName;
         public int MaxOutputCharacters;
     }
@@ -277,6 +298,8 @@ public class Script : ScriptBase
         public int EndPage;
         public bool HasTextLayer;
         public bool Truncated;
+        public int TableCount;
+        public bool UsedTaggedStructure;
         public JArray PageChunks = new JArray();
         public List<string> Warnings = new List<string>();
     }
@@ -790,11 +813,77 @@ public class Script : ScriptBase
 
     private sealed class PdfPage
     {
+        public int ObjectNumber;
         public PdfDictionary Dictionary;
         public PdfDictionary Resources;
         public double Width = 612;
         public double Height = 792;
         public int Rotation;
+    }
+
+    private sealed class SemanticInfo
+    {
+        public int StructureOrder;
+        public int BlockId;
+        public string BlockRole;
+        public int TableId;
+        public int RowId;
+        public int CellId;
+        public string CellRole;
+        public int ListId;
+        public int ListItemId;
+        public bool IsListLabel;
+    }
+
+    private sealed class SemanticCell
+    {
+        public int Id;
+        public int Order;
+        public int PageObjectNumber;
+        public string Role;
+        public int ColumnSpan = 1;
+        public int RowSpan = 1;
+    }
+
+    private sealed class SemanticRow
+    {
+        public int Id;
+        public int Order;
+        public int PageObjectNumber;
+        public readonly List<SemanticCell> Cells = new List<SemanticCell>();
+    }
+
+    private sealed class SemanticTable
+    {
+        public int Id;
+        public int Order;
+        public readonly List<SemanticRow> Rows = new List<SemanticRow>();
+    }
+
+    private sealed class SemanticTraversalState
+    {
+        public int PageObjectNumber;
+        public int BlockId;
+        public string BlockRole;
+        public int TableId;
+        public int RowId;
+        public int CellId;
+        public string CellRole;
+        public int ListId;
+        public int ListItemId;
+        public bool IsListLabel;
+
+        public SemanticTraversalState Clone()
+        {
+            return (SemanticTraversalState)this.MemberwiseClone();
+        }
+    }
+
+    private sealed class PageContentResult
+    {
+        public string Text;
+        public int TableCount;
+        public bool UsedTaggedStructure;
     }
 
     private sealed class PdfTextDocument
@@ -807,7 +896,13 @@ public class Script : ScriptBase
         private readonly Dictionary<int, Dictionary<int, PdfValue>> _objectStreamCache = new Dictionary<int, Dictionary<int, PdfValue>>();
         private readonly HashSet<long> _visitedXrefOffsets = new HashSet<long>();
         private readonly List<string> _warnings = new List<string>();
+        private readonly Dictionary<long, SemanticInfo> _semanticByPageAndMcid = new Dictionary<long, SemanticInfo>();
+        private readonly Dictionary<int, SemanticTable> _semanticTables = new Dictionary<int, SemanticTable>();
+        private readonly Dictionary<string, string> _semanticRoleMap = new Dictionary<string, string>(StringComparer.Ordinal);
         private long _totalDecodedStreamBytes;
+        private int _semanticOrder;
+        private int _semanticSyntheticId = 1000000000;
+        private int _semanticElementCount;
         private PdfDictionary _trailer;
 
         public PdfTextDocument(byte[] data, ExtractionOptions options, System.Threading.CancellationToken cancellationToken)
@@ -815,6 +910,214 @@ public class Script : ScriptBase
             this._data = data;
             this._options = options;
             this._cancellationToken = cancellationToken;
+        }
+
+        public SemanticInfo GetSemanticInfo(int pageObjectNumber, int mcid)
+        {
+            SemanticInfo info;
+            return this._semanticByPageAndMcid.TryGetValue(SemanticKey(pageObjectNumber, mcid), out info) ? info : null;
+        }
+
+        public List<SemanticTable> GetSemanticTablesForPage(int pageObjectNumber)
+        {
+            return this._semanticTables.Values
+                .Where(table => table.Rows.Any(row => row.PageObjectNumber == pageObjectNumber ||
+                    row.Cells.Any(cell => cell.PageObjectNumber == pageObjectNumber)))
+                .OrderBy(table => table.Order)
+                .ToList();
+        }
+
+        private void BuildSemanticStructure(PdfDictionary catalog)
+        {
+            this._semanticByPageAndMcid.Clear();
+            this._semanticTables.Clear();
+            this._semanticRoleMap.Clear();
+            this._semanticOrder = 0;
+            this._semanticElementCount = 0;
+
+            PdfDictionary structureRoot = AsDictionary(Resolve(catalog.Get("StructTreeRoot")));
+            if (structureRoot == null) return;
+            PdfDictionary roleMap = AsDictionary(Resolve(structureRoot.Get("RoleMap")));
+            if (roleMap != null)
+            {
+                foreach (KeyValuePair<string, PdfValue> item in roleMap.Items)
+                {
+                    string mapped = GetName(Resolve(item.Value));
+                    if (!string.IsNullOrEmpty(mapped)) this._semanticRoleMap[item.Key] = mapped;
+                }
+            }
+
+            WalkStructure(
+                structureRoot.Get("K"),
+                new SemanticTraversalState(),
+                new HashSet<int>(),
+                0);
+        }
+
+        private void WalkStructure(
+            PdfValue value,
+            SemanticTraversalState inherited,
+            HashSet<int> visited,
+            int depth)
+        {
+            if (value == null) return;
+            if (depth > MaximumStructureDepth)
+            {
+                throw new PdfExtractionException("PDF_RESOURCE_LIMIT", "The tagged structure tree exceeded the processing depth limit.");
+            }
+            PdfArray array = Resolve(value) as PdfArray;
+            if (array != null)
+            {
+                foreach (PdfValue item in array.Items) WalkStructure(item, inherited, visited, depth + 1);
+                return;
+            }
+
+            PdfNumber mcidNumber = Resolve(value) as PdfNumber;
+            if (mcidNumber != null)
+            {
+                RegisterSemanticMcid(inherited.PageObjectNumber, (int)mcidNumber.Value, inherited);
+                return;
+            }
+
+            PdfReference reference = value as PdfReference;
+            if (reference != null && !visited.Add(reference.ObjectNumber)) return;
+            PdfDictionary element = AsDictionary(Resolve(value));
+            if (element == null) return;
+            if (++this._semanticElementCount > MaximumStructureElements)
+            {
+                throw new PdfExtractionException("PDF_RESOURCE_LIMIT", "The tagged structure tree exceeded the element processing limit.");
+            }
+
+            var state = inherited.Clone();
+            PdfReference pageReference = element.Get("Pg") as PdfReference;
+            if (pageReference != null) state.PageObjectNumber = pageReference.ObjectNumber;
+
+            string type = GetName(Resolve(element.Get("Type")));
+            string role = GetName(Resolve(element.Get("S")));
+            string mappedRole;
+            if (!string.IsNullOrEmpty(role) && this._semanticRoleMap.TryGetValue(role, out mappedRole)) role = mappedRole;
+
+            if ((string.Equals(type, "MCR", StringComparison.Ordinal) || string.IsNullOrEmpty(role)) && element.Get("MCID") != null)
+            {
+                int mcid = GetInt(Resolve(element.Get("MCID")), -1);
+                if (mcid >= 0) RegisterSemanticMcid(state.PageObjectNumber, mcid, state);
+                return;
+            }
+
+            int id = reference == null ? this._semanticSyntheticId++ : reference.ObjectNumber;
+            if (IsBlockRole(role))
+            {
+                state.BlockId = id;
+                state.BlockRole = role;
+            }
+            if (string.Equals(role, "L", StringComparison.Ordinal)) state.ListId = id;
+            else if (string.Equals(role, "LI", StringComparison.Ordinal)) state.ListItemId = id;
+            else if (string.Equals(role, "Lbl", StringComparison.Ordinal)) state.IsListLabel = true;
+
+            if (string.Equals(role, "Table", StringComparison.Ordinal))
+            {
+                state.TableId = id;
+                state.RowId = 0;
+                state.CellId = 0;
+                state.CellRole = null;
+                if (!this._semanticTables.ContainsKey(id))
+                {
+                    this._semanticTables[id] = new SemanticTable { Id = id, Order = this._semanticOrder };
+                }
+            }
+            else if (string.Equals(role, "TR", StringComparison.Ordinal) && state.TableId != 0)
+            {
+                state.RowId = id;
+                state.CellId = 0;
+                state.CellRole = null;
+                SemanticTable table;
+                if (this._semanticTables.TryGetValue(state.TableId, out table) && !table.Rows.Any(row => row.Id == id))
+                {
+                    table.Rows.Add(new SemanticRow
+                    {
+                        Id = id,
+                        Order = this._semanticOrder,
+                        PageObjectNumber = state.PageObjectNumber
+                    });
+                }
+            }
+            else if ((string.Equals(role, "TH", StringComparison.Ordinal) || string.Equals(role, "TD", StringComparison.Ordinal)) &&
+                state.TableId != 0 && state.RowId != 0)
+            {
+                state.CellId = id;
+                state.CellRole = role;
+                SemanticTable table;
+                SemanticRow row;
+                if (this._semanticTables.TryGetValue(state.TableId, out table) &&
+                    (row = table.Rows.FirstOrDefault(candidate => candidate.Id == state.RowId)) != null &&
+                    !row.Cells.Any(cell => cell.Id == id))
+                {
+                    row.Cells.Add(new SemanticCell
+                    {
+                        Id = id,
+                        Order = this._semanticOrder,
+                        PageObjectNumber = state.PageObjectNumber,
+                        Role = role,
+                        ColumnSpan = Math.Max(1, FindStructureAttribute(element.Get("A"), "ColSpan", 1, 0)),
+                        RowSpan = Math.Max(1, FindStructureAttribute(element.Get("A"), "RowSpan", 1, 0))
+                    });
+                }
+            }
+
+            WalkStructure(element.Get("K"), state, visited, depth + 1);
+        }
+
+        private int FindStructureAttribute(PdfValue value, string name, int defaultValue, int depth)
+        {
+            if (depth > 16) return defaultValue;
+            PdfValue resolved = Resolve(value);
+            PdfNumber number = resolved as PdfNumber;
+            if (number != null) return (int)number.Value;
+            PdfArray array = resolved as PdfArray;
+            if (array != null)
+            {
+                foreach (PdfValue item in array.Items)
+                {
+                    int found = FindStructureAttribute(item, name, -1, depth + 1);
+                    if (found >= 0) return found;
+                }
+                return defaultValue;
+            }
+            PdfDictionary dictionary = AsDictionary(resolved);
+            if (dictionary == null) return defaultValue;
+            PdfNumber attribute = Resolve(dictionary.Get(name)) as PdfNumber;
+            return attribute == null ? defaultValue : (int)attribute.Value;
+        }
+
+        private void RegisterSemanticMcid(int pageObjectNumber, int mcid, SemanticTraversalState state)
+        {
+            if (pageObjectNumber <= 0 || mcid < 0) return;
+            this._semanticByPageAndMcid[SemanticKey(pageObjectNumber, mcid)] = new SemanticInfo
+            {
+                StructureOrder = this._semanticOrder++,
+                BlockId = state.BlockId,
+                BlockRole = state.BlockRole,
+                TableId = state.TableId,
+                RowId = state.RowId,
+                CellId = state.CellId,
+                CellRole = state.CellRole,
+                ListId = state.ListId,
+                ListItemId = state.ListItemId,
+                IsListLabel = state.IsListLabel
+            };
+        }
+
+        private static bool IsBlockRole(string role)
+        {
+            if (string.IsNullOrEmpty(role)) return false;
+            return role == "P" || role == "Caption" || role == "TOCI" || role == "Quote" || role == "Code" ||
+                role == "LBody" || role == "Lbl" ||
+                (role.Length == 2 && role[0] == 'H' && role[1] >= '1' && role[1] <= '6');
+        }
+
+        private static long SemanticKey(int pageObjectNumber, int mcid)
+        {
+            return ((long)pageObjectNumber << 32) ^ (uint)mcid;
         }
 
         public ExtractionResult Extract()
@@ -869,6 +1172,7 @@ public class Script : ScriptBase
             {
                 throw new PdfExtractionException("TOO_MANY_PAGES", "The PDF contains more than " + MaximumPageCount + " pages.");
             }
+            if (this._options.RichMarkdown) BuildSemanticStructure(catalog);
 
             int startPage = Math.Min(Math.Max(1, this._options.StartPage), pages.Count);
             int endPage = this._options.EndPage.HasValue ? Math.Min(Math.Max(startPage, this._options.EndPage.Value), pages.Count) : pages.Count;
@@ -879,12 +1183,17 @@ public class Script : ScriptBase
             int chunkCharacters = 0;
             bool hasText = false;
             bool truncated = false;
+            int tableCount = 0;
+            bool usedTaggedStructure = false;
 
             for (int pageIndex = startPage - 1; pageIndex < endPage; pageIndex++)
             {
                 this._cancellationToken.ThrowIfCancellationRequested();
                 var interpreter = new ContentInterpreter(this, pages[pageIndex], this._options.IncludeArtifacts, this._cancellationToken);
-                string pageText = interpreter.ExtractText();
+                PageContentResult pageResult = interpreter.Extract(this._options.RichMarkdown);
+                string pageText = pageResult.Text;
+                tableCount += pageResult.TableCount;
+                usedTaggedStructure = usedTaggedStructure || pageResult.UsedTaggedStructure;
                 if (!string.IsNullOrWhiteSpace(pageText)) hasText = true;
 
                 if (this._options.ReturnPageChunks)
@@ -911,7 +1220,7 @@ public class Script : ScriptBase
 
                     JObject metadata = (JObject)documentMetadata.DeepClone();
                     metadata["pageNumber"] = pageIndex + 1;
-                    pageChunks.Add(new JObject
+                    var pageChunk = new JObject
                     {
                         ["metadata"] = metadata,
                         ["page"] = new JObject
@@ -926,7 +1235,13 @@ public class Script : ScriptBase
                         ["hasTextLayer"] = !string.IsNullOrWhiteSpace(pageText),
                         ["truncated"] = pageTruncated,
                         ["warnings"] = new JArray(pageWarnings)
-                    });
+                    };
+                    if (this._options.RichMarkdown)
+                    {
+                        pageChunk["tableCount"] = pageResult.TableCount;
+                        pageChunk["usedTaggedStructure"] = pageResult.UsedTaggedStructure;
+                    }
+                    pageChunks.Add(pageChunk);
                     pagesExtracted++;
                     if (pageTruncated)
                     {
@@ -967,6 +1282,8 @@ public class Script : ScriptBase
                 EndPage = startPage + pagesExtracted - 1,
                 HasTextLayer = hasText,
                 Truncated = truncated,
+                TableCount = tableCount,
+                UsedTaggedStructure = usedTaggedStructure,
                 PageChunks = pageChunks,
                 Warnings = this._warnings
             };
@@ -1733,6 +2050,7 @@ public class Script : ScriptBase
                 }
                 pages.Add(new PdfPage
                 {
+                    ObjectNumber = reference == null ? 0 : reference.ObjectNumber,
                     Dictionary = node,
                     Resources = resources ?? new PdfDictionary(),
                     Width = width,
@@ -1835,6 +2153,8 @@ public class Script : ScriptBase
             this.BaseFont = PdfTextDocument.GetName(this._document.Resolve(this._dictionary.Get("BaseFont"))) ?? string.Empty;
             this.IsBold = this.BaseFont.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 this.BaseFont.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0;
+            this.IsItalic = this.BaseFont.IndexOf("Italic", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                this.BaseFont.IndexOf("Oblique", StringComparison.OrdinalIgnoreCase) >= 0;
             this._composite = string.Equals(
                 PdfTextDocument.GetName(this._document.Resolve(this._dictionary.Get("Subtype"))),
                 "Type0",
@@ -1862,6 +2182,7 @@ public class Script : ScriptBase
 
         public string BaseFont { get; private set; }
         public bool IsBold { get; private set; }
+        public bool IsItalic { get; private set; }
 
         public string Decode(byte[] bytes)
         {
@@ -2373,6 +2694,10 @@ public class Script : ScriptBase
         public double FontSize;
         public string Text;
         public bool IsBold;
+        public bool IsItalic;
+        public bool IsSuperscript;
+        public bool IsSubscript;
+        public SemanticInfo Semantic;
         public int Sequence;
     }
 
@@ -2409,6 +2734,12 @@ public class Script : ScriptBase
         }
     }
 
+    private sealed class MarkedContentState
+    {
+        public bool InArtifact;
+        public SemanticInfo Semantic;
+    }
+
     private sealed class ContentInterpreter
     {
         private readonly PdfTextDocument _document;
@@ -2432,7 +2763,7 @@ public class Script : ScriptBase
             this._cancellationToken = cancellationToken;
         }
 
-        public string ExtractText()
+        public PageContentResult Extract(bool richMarkdown)
         {
             PdfValue contents = this._document.Resolve(this._page.Dictionary.Get("Contents"));
             var streams = new List<PdfStream>();
@@ -2452,10 +2783,22 @@ public class Script : ScriptBase
             foreach (PdfStream stream in streams)
             {
                 this._cancellationToken.ThrowIfCancellationRequested();
-                Interpret(this._document.DecodeStream(stream), this._page.Resources, state, false, 0);
+                Interpret(this._document.DecodeStream(stream), this._page.Resources, state, false, null, 0);
             }
             ApplyPageRotation();
-            return ReconstructText(this._fragments);
+            if (!richMarkdown)
+            {
+                return new PageContentResult
+                {
+                    Text = ReconstructText(this._fragments),
+                    TableCount = 0,
+                    UsedTaggedStructure = false
+                };
+            }
+            return ReconstructMarkdown(
+                this._fragments,
+                this._document.GetSemanticTablesForPage(this._page.ObjectNumber),
+                this._page.ObjectNumber);
         }
 
         private void Interpret(
@@ -2463,15 +2806,17 @@ public class Script : ScriptBase
             PdfDictionary resources,
             ContentState initialState,
             bool inheritedArtifact,
+            SemanticInfo inheritedSemantic,
             int depth)
         {
             if (content == null || content.Length == 0 || depth > 12) return;
             var parser = new PdfParser(content);
             var operands = new List<PdfValue>();
             var graphicsStack = new Stack<ContentState>();
-            var markedStack = new Stack<bool>();
+            var markedStack = new Stack<MarkedContentState>();
             var state = initialState.Clone();
             bool inArtifact = inheritedArtifact;
+            SemanticInfo semantic = inheritedSemantic;
             int operationCount = 0;
 
             while (!parser.AtEnd)
@@ -2537,16 +2882,16 @@ public class Script : ScriptBase
                 else if (op == "T*") MoveTextLine(state, 0, -state.Leading);
                 else if (op == "Tj" && operands.Count >= 1)
                 {
-                    ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact);
+                    ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact, semantic);
                 }
                 else if (op == "TJ" && operands.Count >= 1)
                 {
-                    ShowArray(state, operands[operands.Count - 1] as PdfArray, inArtifact);
+                    ShowArray(state, operands[operands.Count - 1] as PdfArray, inArtifact, semantic);
                 }
                 else if (op == "'")
                 {
                     MoveTextLine(state, 0, -state.Leading);
-                    if (operands.Count >= 1) ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact);
+                    if (operands.Count >= 1) ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact, semantic);
                 }
                 else if (op == "\"")
                 {
@@ -2555,23 +2900,53 @@ public class Script : ScriptBase
                         state.WordSpacing = Number(operands[operands.Count - 3], state.WordSpacing);
                         state.CharacterSpacing = Number(operands[operands.Count - 2], state.CharacterSpacing);
                         MoveTextLine(state, 0, -state.Leading);
-                        ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact);
+                        ShowString(state, operands[operands.Count - 1] as PdfString, inArtifact, semantic);
                     }
                 }
                 else if (op == "BMC" || op == "BDC")
                 {
-                    markedStack.Push(inArtifact);
+                    markedStack.Push(new MarkedContentState { InArtifact = inArtifact, Semantic = semantic });
                     PdfName tag = operands.Count > 0 ? operands[0] as PdfName : null;
                     inArtifact = inArtifact || (tag != null && string.Equals(tag.Value, "Artifact", StringComparison.Ordinal));
+                    if (op == "BDC" && operands.Count >= 2)
+                    {
+                        PdfValue properties = operands[operands.Count - 1];
+                        PdfName propertyName = properties as PdfName;
+                        if (propertyName != null)
+                        {
+                            PdfDictionary propertyResources = PdfTextDocument.AsDictionary(
+                                this._document.Resolve(resources == null ? null : resources.Get("Properties")));
+                            properties = propertyResources == null ? null : propertyResources.Get(propertyName.Value);
+                        }
+                        PdfDictionary propertyDictionary = PdfTextDocument.AsDictionary(this._document.Resolve(properties));
+                        int mcid = propertyDictionary == null
+                            ? -1
+                            : PdfTextDocument.GetInt(this._document.Resolve(propertyDictionary.Get("MCID")), -1);
+                        if (mcid >= 0)
+                        {
+                            SemanticInfo tagged = this._document.GetSemanticInfo(this._page.ObjectNumber, mcid);
+                            if (tagged != null) semantic = tagged;
+                        }
+                    }
                 }
                 else if (op == "EMC")
                 {
-                    inArtifact = markedStack.Count > 0 ? markedStack.Pop() : inheritedArtifact;
+                    if (markedStack.Count > 0)
+                    {
+                        MarkedContentState marked = markedStack.Pop();
+                        inArtifact = marked.InArtifact;
+                        semantic = marked.Semantic;
+                    }
+                    else
+                    {
+                        inArtifact = inheritedArtifact;
+                        semantic = inheritedSemantic;
+                    }
                 }
                 else if (op == "Do" && operands.Count >= 1)
                 {
                     PdfName name = operands[operands.Count - 1] as PdfName;
-                    if (name != null) InterpretForm(resources, name.Value, state, inArtifact, depth + 1);
+                    if (name != null) InterpretForm(resources, name.Value, state, inArtifact, semantic, depth + 1);
                 }
                 operands.Clear();
             }
@@ -2582,6 +2957,7 @@ public class Script : ScriptBase
             string name,
             ContentState state,
             bool inArtifact,
+            SemanticInfo semantic,
             int depth)
         {
             PdfDictionary xobjects = PdfTextDocument.AsDictionary(this._document.Resolve(resources == null ? null : resources.Get("XObject")));
@@ -2599,7 +2975,7 @@ public class Script : ScriptBase
             }
             ContentState formState = state.Clone();
             formState.Ctm = Matrix.Multiply(state.Ctm, formMatrix);
-            Interpret(this._document.DecodeStream(form), formResources, formState, inArtifact, depth);
+            Interpret(this._document.DecodeStream(form), formResources, formState, inArtifact, semantic, depth);
         }
 
         private PdfFont GetFont(PdfDictionary resources, string resourceName)
@@ -2622,7 +2998,7 @@ public class Script : ScriptBase
             return cached;
         }
 
-        private void ShowString(ContentState state, PdfString value, bool inArtifact)
+        private void ShowString(ContentState state, PdfString value, bool inArtifact, SemanticInfo semantic)
         {
             if (value == null) return;
             PdfFont font = state.Font ?? new PdfFont(this._document, null);
@@ -2633,11 +3009,11 @@ public class Script : ScriptBase
                 state.CharacterSpacing,
                 state.WordSpacing,
                 state.HorizontalScale);
-            Capture(state, text, advance, inArtifact, font.IsBold);
+            Capture(state, text, advance, inArtifact, font.IsBold, font.IsItalic, semantic);
             state.TextMatrix = Matrix.Multiply(state.TextMatrix, Matrix.Translation(advance, 0));
         }
 
-        private void ShowArray(ContentState state, PdfArray array, bool inArtifact)
+        private void ShowArray(ContentState state, PdfArray array, bool inArtifact, SemanticInfo semantic)
         {
             if (array == null) return;
             PdfFont font = state.Font ?? new PdfFont(this._document, null);
@@ -2667,11 +3043,18 @@ public class Script : ScriptBase
                     advance += movement;
                 }
             }
-            Capture(state, text.ToString(), advance, inArtifact, font.IsBold);
+            Capture(state, text.ToString(), advance, inArtifact, font.IsBold, font.IsItalic, semantic);
             state.TextMatrix = Matrix.Multiply(state.TextMatrix, Matrix.Translation(advance, 0));
         }
 
-        private void Capture(ContentState state, string text, double advance, bool inArtifact, bool bold)
+        private void Capture(
+            ContentState state,
+            string text,
+            double advance,
+            bool inArtifact,
+            bool bold,
+            bool italic,
+            SemanticInfo semantic)
         {
             if (string.IsNullOrEmpty(text) || (inArtifact && !this._includeArtifacts)) return;
             if (this._fragments.Count >= MaximumTextFragmentsPerPage)
@@ -2697,6 +3080,10 @@ public class Script : ScriptBase
                 FontSize = Math.Max(1, Math.Abs(state.FontSize)),
                 Text = text,
                 IsBold = bold,
+                IsItalic = italic,
+                IsSuperscript = state.Rise > Math.Abs(state.FontSize) * 0.15,
+                IsSubscript = state.Rise < -Math.Abs(state.FontSize) * 0.15,
+                Semantic = semantic,
                 Sequence = this._sequence++
             });
         }
@@ -2755,6 +3142,17 @@ public class Script : ScriptBase
             public double Baseline;
             public double MaxFontSize;
             public int FirstSequence = int.MaxValue;
+        }
+
+        private sealed class MarkdownBlock
+        {
+            public int Order;
+            public int FirstSequence;
+            public double Top;
+            public string Role;
+            public bool IsListItem;
+            public SemanticTable Table;
+            public readonly List<TextFragment> Fragments = new List<TextFragment>();
         }
 
         private static string ReconstructText(List<TextFragment> fragments)
@@ -2850,6 +3248,565 @@ public class Script : ScriptBase
                 previousEndedWhitespace = endsWhitespace;
             }
             return result.ToString();
+        }
+
+        private static PageContentResult ReconstructMarkdown(
+            List<TextFragment> fragments,
+            List<SemanticTable> semanticTables,
+            int pageObjectNumber)
+        {
+            var useful = fragments
+                .Where(fragment => !string.IsNullOrWhiteSpace(NormalizeFragment(fragment.Text)))
+                .ToList();
+            if (useful.Count == 0)
+            {
+                return new PageContentResult { Text = string.Empty, TableCount = 0, UsedTaggedStructure = false };
+            }
+
+            bool tagged = useful.Any(fragment => fragment.Semantic != null);
+            var used = new HashSet<TextFragment>();
+            var blocks = new List<MarkdownBlock>();
+
+            foreach (IGrouping<int, TextFragment> tableGroup in useful
+                .Where(fragment => fragment.Semantic != null && fragment.Semantic.TableId != 0)
+                .GroupBy(fragment => fragment.Semantic.TableId))
+            {
+                List<TextFragment> tableFragments = tableGroup.ToList();
+                SemanticTable table = semanticTables.FirstOrDefault(candidate => candidate.Id == tableGroup.Key);
+                if (table == null)
+                {
+                    table = BuildSyntheticTable(tableGroup.Key, tableFragments);
+                }
+                var block = new MarkdownBlock
+                {
+                    Table = table,
+                    Order = tableFragments.Min(fragment => fragment.Semantic.StructureOrder),
+                    FirstSequence = tableFragments.Min(fragment => fragment.Sequence),
+                    Top = tableFragments.Max(fragment => fragment.Y),
+                    Role = "Table"
+                };
+                block.Fragments.AddRange(tableFragments);
+                blocks.Add(block);
+                foreach (TextFragment fragment in tableFragments) used.Add(fragment);
+            }
+
+            foreach (IGrouping<int, TextFragment> listGroup in useful
+                .Where(fragment => !used.Contains(fragment) && fragment.Semantic != null && fragment.Semantic.ListItemId != 0)
+                .GroupBy(fragment => fragment.Semantic.ListItemId))
+            {
+                List<TextFragment> listFragments = listGroup.ToList();
+                var block = CreateMarkdownBlock(listFragments, "LI");
+                block.IsListItem = true;
+                blocks.Add(block);
+                foreach (TextFragment fragment in listFragments) used.Add(fragment);
+            }
+
+            foreach (IGrouping<int, TextFragment> blockGroup in useful
+                .Where(fragment => !used.Contains(fragment) && fragment.Semantic != null && fragment.Semantic.BlockId != 0)
+                .GroupBy(fragment => fragment.Semantic.BlockId))
+            {
+                List<TextFragment> blockFragments = blockGroup.ToList();
+                string role = blockFragments
+                    .Select(fragment => fragment.Semantic.BlockRole)
+                    .FirstOrDefault(candidate => !string.IsNullOrEmpty(candidate)) ?? "P";
+                blocks.Add(CreateMarkdownBlock(blockFragments, role));
+                foreach (TextFragment fragment in blockFragments) used.Add(fragment);
+            }
+
+            foreach (IGrouping<int, TextFragment> taggedRemainder in useful
+                .Where(fragment => !used.Contains(fragment) && fragment.Semantic != null)
+                .GroupBy(fragment => fragment.Semantic.StructureOrder))
+            {
+                List<TextFragment> remainder = taggedRemainder.ToList();
+                blocks.Add(CreateMarkdownBlock(remainder, "P"));
+                foreach (TextFragment fragment in remainder) used.Add(fragment);
+            }
+
+            List<TextFragment> untagged = useful.Where(fragment => !used.Contains(fragment)).ToList();
+            if (untagged.Count > 0)
+            {
+                foreach (TextLine line in CreateLines(untagged))
+                {
+                    var block = new MarkdownBlock
+                    {
+                        Order = int.MaxValue,
+                        FirstSequence = line.FirstSequence,
+                        Top = line.Baseline,
+                        Role = InferLineRole(line, useful)
+                    };
+                    block.Fragments.AddRange(line.Fragments);
+                    blocks.Add(block);
+                }
+            }
+
+            blocks = blocks
+                .OrderByDescending(block => block.Top)
+                .ThenBy(block => block.Order)
+                .ThenBy(block => block.FirstSequence)
+                .ToList();
+
+            var output = new StringBuilder();
+            int tableCount = 0;
+            for (int index = 0; index < blocks.Count; index++)
+            {
+                MarkdownBlock block = blocks[index];
+                string markdown;
+                if (block.Table != null)
+                {
+                    markdown = RenderSemanticTable(block.Table, block.Fragments, pageObjectNumber);
+                    if (!string.IsNullOrWhiteSpace(markdown)) tableCount++;
+                }
+                else markdown = RenderMarkdownBlock(block);
+                if (string.IsNullOrWhiteSpace(markdown)) continue;
+                if (output.Length > 0) output.Append("\n\n");
+                output.Append(markdown.Trim());
+            }
+
+            return new PageContentResult
+            {
+                Text = output.ToString(),
+                TableCount = tableCount,
+                UsedTaggedStructure = tagged
+            };
+        }
+
+        private static MarkdownBlock CreateMarkdownBlock(List<TextFragment> fragments, string role)
+        {
+            var block = new MarkdownBlock
+            {
+                Role = role,
+                Order = fragments.Where(fragment => fragment.Semantic != null)
+                    .Select(fragment => fragment.Semantic.StructureOrder)
+                    .DefaultIfEmpty(int.MaxValue)
+                    .Min(),
+                FirstSequence = fragments.Min(fragment => fragment.Sequence),
+                Top = fragments.Max(fragment => fragment.Y)
+            };
+            block.Fragments.AddRange(fragments);
+            return block;
+        }
+
+        private static SemanticTable BuildSyntheticTable(int tableId, List<TextFragment> fragments)
+        {
+            var table = new SemanticTable { Id = tableId, Order = 0 };
+            foreach (IGrouping<int, TextFragment> rowGroup in fragments
+                .Where(fragment => fragment.Semantic.RowId != 0)
+                .GroupBy(fragment => fragment.Semantic.RowId)
+                .OrderBy(group => group.Min(fragment => fragment.Semantic.StructureOrder)))
+            {
+                var row = new SemanticRow
+                {
+                    Id = rowGroup.Key,
+                    Order = rowGroup.Min(fragment => fragment.Semantic.StructureOrder)
+                };
+                foreach (IGrouping<int, TextFragment> cellGroup in rowGroup
+                    .Where(fragment => fragment.Semantic.CellId != 0)
+                    .GroupBy(fragment => fragment.Semantic.CellId)
+                    .OrderBy(group => group.Min(fragment => fragment.Semantic.StructureOrder)))
+                {
+                    TextFragment first = cellGroup.First();
+                    row.Cells.Add(new SemanticCell
+                    {
+                        Id = cellGroup.Key,
+                        Order = cellGroup.Min(fragment => fragment.Semantic.StructureOrder),
+                        Role = first.Semantic.CellRole,
+                        PageObjectNumber = 0
+                    });
+                }
+                table.Rows.Add(row);
+            }
+            return table;
+        }
+
+        private static string RenderSemanticTable(
+            SemanticTable table,
+            List<TextFragment> fragments,
+            int pageObjectNumber)
+        {
+            var fragmentsByCell = fragments
+                .Where(fragment => fragment.Semantic != null && fragment.Semantic.CellId != 0)
+                .GroupBy(fragment => fragment.Semantic.CellId)
+                .ToDictionary(group => group.Key, group => group.ToList());
+            var rows = table.Rows
+                .Where(row => row.PageObjectNumber == pageObjectNumber ||
+                    row.Cells.Any(cell => cell.PageObjectNumber == pageObjectNumber || fragmentsByCell.ContainsKey(cell.Id)))
+                .OrderBy(row => row.Order)
+                .ToList();
+            if (rows.Count == 0)
+            {
+                rows = BuildSyntheticTable(table.Id, fragments).Rows;
+            }
+            if (rows.Count == 0 || fragmentsByCell.Count == 0) return string.Empty;
+
+            int columnCount = rows.Max(row => Math.Max(1, row.Cells.Sum(cell => Math.Max(1, cell.ColumnSpan))));
+            columnCount = Math.Min(64, Math.Max(1, columnCount));
+            var renderedRows = new List<List<string>>();
+            var rowSpans = new int[columnCount];
+            foreach (SemanticRow row in rows)
+            {
+                List<List<string>> splitRows;
+                if (TrySplitCategoryRow(row, fragmentsByCell, columnCount, out splitRows))
+                {
+                    renderedRows.AddRange(splitRows);
+                    continue;
+                }
+                var rendered = Enumerable.Repeat(string.Empty, columnCount).ToList();
+                int column = 0;
+                foreach (SemanticCell cell in row.Cells.OrderBy(candidate => candidate.Order))
+                {
+                    while (column < columnCount && rowSpans[column] > 0) column++;
+                    if (column >= columnCount) break;
+                    List<TextFragment> cellFragments;
+                    string value = fragmentsByCell.TryGetValue(cell.Id, out cellFragments)
+                        ? RenderCell(cellFragments)
+                        : string.Empty;
+                    rendered[column] = value;
+                    int columnSpan = Math.Min(Math.Max(1, cell.ColumnSpan), columnCount - column);
+                    int rowSpan = Math.Max(1, cell.RowSpan);
+                    for (int offset = 0; offset < columnSpan; offset++)
+                    {
+                        if (rowSpan > 1) rowSpans[column + offset] = Math.Max(rowSpans[column + offset], rowSpan);
+                    }
+                    column += columnSpan;
+                }
+                renderedRows.Add(rendered);
+                for (int i = 0; i < rowSpans.Length; i++) if (rowSpans[i] > 0) rowSpans[i]--;
+            }
+
+            if (renderedRows.All(row => row.All(string.IsNullOrWhiteSpace))) return string.Empty;
+            var output = new StringBuilder();
+            AppendMarkdownTableRow(output, renderedRows[0]);
+            output.Append('\n');
+            AppendMarkdownTableRow(output, Enumerable.Repeat("---", columnCount).ToList());
+            for (int rowIndex = 1; rowIndex < renderedRows.Count; rowIndex++)
+            {
+                output.Append('\n');
+                AppendMarkdownTableRow(output, renderedRows[rowIndex]);
+            }
+            return output.ToString();
+        }
+
+        private static bool TrySplitCategoryRow(
+            SemanticRow row,
+            Dictionary<int, List<TextFragment>> fragmentsByCell,
+            int columnCount,
+            out List<List<string>> renderedRows)
+        {
+            renderedRows = null;
+            List<SemanticCell> cells = row.Cells.OrderBy(cell => cell.Order).ToList();
+            if (cells.Count < 2 || cells.Any(cell => cell.ColumnSpan != 1 || cell.RowSpan != 1)) return false;
+            var linesByCell = new List<List<TextLine>>();
+            foreach (SemanticCell cell in cells)
+            {
+                List<TextFragment> cellFragments;
+                linesByCell.Add(fragmentsByCell.TryGetValue(cell.Id, out cellFragments)
+                    ? CreateLines(cellFragments)
+                    : new List<TextLine>());
+            }
+            List<TextLine> leading = linesByCell[0];
+            if (leading.Count < 2 || !LineIsBold(leading[0]) || LineIsBold(leading[1])) return false;
+            int dataRows = leading.Count - 1;
+            if (dataRows > 24 || linesByCell.Skip(1).All(lines => lines.Count == 0)) return false;
+            if (linesByCell.Skip(1).Any(lines => lines.Count != 0 && lines.Count != dataRows)) return false;
+
+            int aligned = 0;
+            int comparisons = 0;
+            for (int cellIndex = 1; cellIndex < linesByCell.Count; cellIndex++)
+            {
+                List<TextLine> lines = linesByCell[cellIndex];
+                if (lines.Count == 0) continue;
+                for (int lineIndex = 0; lineIndex < dataRows; lineIndex++)
+                {
+                    comparisons++;
+                    double tolerance = Math.Max(3.0, Math.Min(leading[lineIndex + 1].MaxFontSize, lines[lineIndex].MaxFontSize) * 0.55);
+                    if (Math.Abs(leading[lineIndex + 1].Baseline - lines[lineIndex].Baseline) <= tolerance) aligned++;
+                }
+            }
+            if (comparisons == 0 || aligned * 5 < comparisons * 4) return false;
+
+            renderedRows = new List<List<string>>();
+            var category = Enumerable.Repeat(string.Empty, columnCount).ToList();
+            category[0] = BuildRichLine(leading[0].Fragments, true).Trim();
+            renderedRows.Add(category);
+            for (int lineIndex = 0; lineIndex < dataRows; lineIndex++)
+            {
+                var rendered = Enumerable.Repeat(string.Empty, columnCount).ToList();
+                rendered[0] = BuildRichLine(leading[lineIndex + 1].Fragments, true).Trim();
+                for (int cellIndex = 1; cellIndex < Math.Min(cells.Count, columnCount); cellIndex++)
+                {
+                    List<TextLine> lines = linesByCell[cellIndex];
+                    if (lines.Count > lineIndex) rendered[cellIndex] = BuildRichLine(lines[lineIndex].Fragments, true).Trim();
+                }
+                renderedRows.Add(rendered);
+            }
+            return true;
+        }
+
+        private static bool LineIsBold(TextLine line)
+        {
+            List<TextFragment> useful = line.Fragments
+                .Where(fragment => !string.IsNullOrWhiteSpace(NormalizeFragment(fragment.Text)))
+                .ToList();
+            return useful.Count > 0 && useful.Count(fragment => fragment.IsBold) * 4 >= useful.Count * 3;
+        }
+
+        private static void AppendMarkdownTableRow(StringBuilder output, List<string> cells)
+        {
+            output.Append('|');
+            foreach (string cell in cells)
+            {
+                output.Append(cell ?? string.Empty);
+                output.Append('|');
+            }
+        }
+
+        private static string RenderCell(List<TextFragment> fragments)
+        {
+            var lines = CreateLines(fragments);
+            var output = new StringBuilder();
+            foreach (TextLine line in lines)
+            {
+                string text = BuildRichLine(line.Fragments, true);
+                if (string.IsNullOrWhiteSpace(text)) continue;
+                if (output.Length > 0) output.Append("<br>");
+                output.Append(text.Trim());
+            }
+            return output.ToString();
+        }
+
+        private static string RenderMarkdownBlock(MarkdownBlock block)
+        {
+            List<TextLine> lines = CreateLines(block.Fragments);
+            if (lines.Count == 0) return string.Empty;
+            if (block.IsListItem)
+            {
+                List<TextFragment> labels = block.Fragments
+                    .Where(fragment => fragment.Semantic != null && fragment.Semantic.IsListLabel)
+                    .ToList();
+                List<TextFragment> bodies = block.Fragments
+                    .Where(fragment => fragment.Semantic == null || !fragment.Semantic.IsListLabel)
+                    .ToList();
+                string label = labels.Count == 0 ? string.Empty : RenderFlowingText(CreateLines(labels));
+                string body = bodies.Count == 0 ? RenderFlowingText(lines) : RenderFlowingText(CreateLines(bodies));
+                return RenderListItem(label, body);
+            }
+
+            string text = RenderFlowingText(lines);
+            if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+            if (!string.IsNullOrEmpty(block.Role) && block.Role.Length == 2 && block.Role[0] == 'H' &&
+                block.Role[1] >= '1' && block.Role[1] <= '6')
+            {
+                int level = block.Role[1] - '0';
+                return new string('#', level) + " " + StripOuterBold(text);
+            }
+            if (string.Equals(block.Role, "Quote", StringComparison.Ordinal)) return "> " + text;
+            if (string.Equals(block.Role, "Code", StringComparison.Ordinal)) return "```\n" + UnescapeMarkdown(text) + "\n```";
+            if (string.Equals(block.Role, "Caption", StringComparison.Ordinal) && !IsOuterBold(text)) return "**" + text + "**";
+            if (LooksLikeBullet(text)) return NormalizeBullet(text);
+            return text;
+        }
+
+        private static string RenderFlowingText(List<TextLine> lines)
+        {
+            var output = new StringBuilder();
+            foreach (TextLine line in lines)
+            {
+                string text = BuildRichLine(line.Fragments, false).Trim();
+                if (text.Length == 0) continue;
+                if (output.Length > 0)
+                {
+                    bool dehyphenate = output[output.Length - 1] == '-' && StartsWithLowercaseText(text);
+                    if (dehyphenate) output.Length--;
+                    else output.Append(' ');
+                }
+                output.Append(text);
+            }
+            return output.ToString();
+        }
+
+        private static string RenderListItem(string label, string body)
+        {
+            label = StripMarkdownFormatting(label).Trim();
+            body = body.Trim();
+            if (label.Length == 0) return NormalizeBullet(body);
+            if (Regex.IsMatch(label, @"^\d+[\.)]$") || Regex.IsMatch(label, @"^\d+\.$"))
+            {
+                return label.TrimEnd('.', ')') + ". " + body;
+            }
+            if (label == "-" || label == "–" || label == "—" || label == "•" || label == "▪" ||
+                label == "◦" || label == "●" || label == "o")
+            {
+                return "- " + body;
+            }
+            return "- " + (label.Length == 0 ? string.Empty : label + " ") + body;
+        }
+
+        private static bool LooksLikeBullet(string text)
+        {
+            string plain = StripMarkdownFormatting(text).TrimStart();
+            return plain.StartsWith("•", StringComparison.Ordinal) || plain.StartsWith("▪", StringComparison.Ordinal) ||
+                plain.StartsWith("◦", StringComparison.Ordinal) || plain.StartsWith("●", StringComparison.Ordinal);
+        }
+
+        private static string NormalizeBullet(string text)
+        {
+            string trimmed = text.TrimStart();
+            if (trimmed.Length > 0 && "•▪◦●".IndexOf(trimmed[0]) >= 0) trimmed = trimmed.Substring(1).TrimStart();
+            if (trimmed.StartsWith("- ", StringComparison.Ordinal)) return trimmed;
+            return "- " + trimmed;
+        }
+
+        private static string InferLineRole(TextLine line, List<TextFragment> pageFragments)
+        {
+            var sizes = pageFragments.Select(fragment => fragment.FontSize).OrderBy(size => size).ToList();
+            double median = sizes.Count == 0 ? 12 : sizes[sizes.Count / 2];
+            string plain = BuildLine(line.Fragments).Trim();
+            bool mostlyBold = line.Fragments.Count > 0 &&
+                line.Fragments.Count(fragment => fragment.IsBold) * 2 >= line.Fragments.Count;
+            if (plain.Length <= 180 && line.MaxFontSize >= median * 1.45) return "H1";
+            if (plain.Length <= 180 && line.MaxFontSize >= median * 1.22) return "H2";
+            if (plain.Length <= 140 && mostlyBold && plain.Any(char.IsLetter)) return "H3";
+            return "P";
+        }
+
+        private static List<TextLine> CreateLines(IEnumerable<TextFragment> source)
+        {
+            var useful = source
+                .Where(fragment => !string.IsNullOrWhiteSpace(NormalizeFragment(fragment.Text)))
+                .OrderByDescending(fragment => fragment.Y)
+                .ThenBy(fragment => fragment.X)
+                .ThenBy(fragment => fragment.Sequence)
+                .ToList();
+            var lines = new List<TextLine>();
+            foreach (TextFragment fragment in useful)
+            {
+                TextLine best = null;
+                double bestDistance = double.MaxValue;
+                for (int i = Math.Max(0, lines.Count - 6); i < lines.Count; i++)
+                {
+                    TextLine candidate = lines[i];
+                    double tolerance = Math.Max(2.25, Math.Min(candidate.MaxFontSize, fragment.FontSize) * 0.70);
+                    double distance = Math.Abs(candidate.Baseline - fragment.Y);
+                    if (distance <= tolerance && distance < bestDistance)
+                    {
+                        best = candidate;
+                        bestDistance = distance;
+                    }
+                }
+                if (best == null)
+                {
+                    best = new TextLine { Baseline = fragment.Y, MaxFontSize = fragment.FontSize };
+                    lines.Add(best);
+                }
+                int count = best.Fragments.Count;
+                best.Baseline = (best.Baseline * count + fragment.Y) / (count + 1);
+                best.MaxFontSize = Math.Max(best.MaxFontSize, fragment.FontSize);
+                best.FirstSequence = Math.Min(best.FirstSequence, fragment.Sequence);
+                best.Fragments.Add(fragment);
+            }
+            foreach (TextLine line in lines)
+            {
+                line.Fragments.Sort(delegate(TextFragment left, TextFragment right)
+                {
+                    int x = left.X.CompareTo(right.X);
+                    return x != 0 ? x : left.Sequence.CompareTo(right.Sequence);
+                });
+            }
+            return lines.OrderByDescending(line => line.Baseline).ThenBy(line => line.FirstSequence).ToList();
+        }
+
+        private static string BuildRichLine(List<TextFragment> fragments, bool inTable)
+        {
+            var output = new StringBuilder();
+            TextFragment previous = null;
+            string previousText = null;
+            bool previousEndedWhitespace = false;
+            foreach (TextFragment fragment in fragments)
+            {
+                string raw = NormalizeFragment(fragment.Text);
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+                bool beginsWhitespace = char.IsWhiteSpace(raw[0]);
+                bool endsWhitespace = char.IsWhiteSpace(raw[raw.Length - 1]);
+                string text = raw.Trim();
+                if (output.Length > 0 && previous != null && !string.IsNullOrEmpty(previousText))
+                {
+                    double previousEnd = Math.Max(previous.X, previous.EndX);
+                    double gap = fragment.X - previousEnd;
+                    double referenceSize = Math.Max(1, Math.Min(previous.FontSize, fragment.FontSize));
+                    char last = previousText[previousText.Length - 1];
+                    char first = text[0];
+                    bool punctuationJoin = ".,;:!?)]}%".IndexOf(first) >= 0;
+                    bool openingJoin = "([{#$".IndexOf(last) >= 0;
+                    if (!char.IsWhiteSpace(last) && !char.IsWhiteSpace(first) && !punctuationJoin && !openingJoin &&
+                        (previousEndedWhitespace || beginsWhitespace || gap > referenceSize * 0.12))
+                    {
+                        output.Append(' ');
+                    }
+                }
+                string escaped = EscapeMarkdown(text, inTable);
+                if (fragment.IsBold && fragment.IsItalic) escaped = "***" + escaped + "***";
+                else if (fragment.IsBold) escaped = "**" + escaped + "**";
+                else if (fragment.IsItalic) escaped = "*" + escaped + "*";
+                if (fragment.IsSuperscript) escaped = "<sup>" + escaped + "</sup>";
+                else if (fragment.IsSubscript) escaped = "<sub>" + escaped + "</sub>";
+                output.Append(escaped);
+                previous = fragment;
+                previousText = text;
+                previousEndedWhitespace = endsWhitespace;
+            }
+            string result = output.ToString();
+            while (result.IndexOf("****", StringComparison.Ordinal) >= 0)
+            {
+                result = result.Replace("****", string.Empty);
+            }
+            while (result.IndexOf("** **", StringComparison.Ordinal) >= 0)
+            {
+                result = result.Replace("** **", " ");
+            }
+            while (result.IndexOf("* *", StringComparison.Ordinal) >= 0)
+            {
+                result = result.Replace("* *", " ");
+            }
+            return result;
+        }
+
+        private static string EscapeMarkdown(string value, bool inTable)
+        {
+            string result = value.Replace("\\", "\\\\").Replace("*", "\\*").Replace("_", "\\_");
+            if (inTable) result = result.Replace("|", "\\|");
+            return result;
+        }
+
+        private static string StripMarkdownFormatting(string value)
+        {
+            return value.Replace("**", string.Empty).Replace("*", string.Empty)
+                .Replace("<sup>", string.Empty).Replace("</sup>", string.Empty)
+                .Replace("<sub>", string.Empty).Replace("</sub>", string.Empty);
+        }
+
+        private static bool IsOuterBold(string value)
+        {
+            return value.Length >= 4 && value.StartsWith("**", StringComparison.Ordinal) && value.EndsWith("**", StringComparison.Ordinal);
+        }
+
+        private static string StripOuterBold(string value)
+        {
+            return IsOuterBold(value) ? value.Substring(2, value.Length - 4) : value;
+        }
+
+        private static string UnescapeMarkdown(string value)
+        {
+            return value.Replace("\\*", "*").Replace("\\_", "_").Replace("\\\\", "\\");
+        }
+
+        private static bool StartsWithLowercaseText(string value)
+        {
+            string plain = StripMarkdownFormatting(value);
+            foreach (char current in plain)
+            {
+                if (char.IsLetter(current)) return char.IsLower(current);
+            }
+            return false;
         }
 
         private static string NormalizeFragment(string value)

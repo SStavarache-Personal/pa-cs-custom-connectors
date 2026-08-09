@@ -1,8 +1,8 @@
 # PDF Text Extractor
 
-`PdfTextExtractor` reads the existing digital or OCR text layer from a PDF entirely inside a Power Automate custom-code connector. It needs no API key, NuGet package, native binary, external service, or outbound HTTP call.
+`PdfTextExtractor` reads the existing digital or OCR text layer from a PDF entirely inside a Power Automate custom-code connector. It can return the original plain-text representation or rich PyMuPDF4LLM-style Markdown, either as one document or as a metadata-bearing JSON array split by page. It needs no API key, NuGet package, native binary, external service, or outbound HTTP call.
 
-The implementation targets the hard case this repository did not previously cover: PDFs saved or exported from Microsoft Office. Word-generated product monographs use mixed simple and CID fonts, `ToUnicode` maps, individually positioned text runs, marked-content artifacts, forms, compressed streams, tables, bullets, and incremental cross-reference data. The extractor parses those structures and reconstructs plain text in spatial reading order.
+The implementation targets the hard case this repository did not previously cover: PDFs saved or exported from Microsoft Office. Word-generated product monographs use mixed simple and CID fonts, `ToUnicode` maps, individually positioned text runs, marked-content artifacts, forms, compressed streams, tables, bullets, and incremental cross-reference data. The extractor parses those structures and reconstructs plain text in spatial reading order. Rich mode additionally walks `/StructTreeRoot`, maps page MCIDs to `H1`–`H6`, lists, rows, `TH`/`TD` cells, and uses geometry inside each semantic cell. This structured model is deliberately reusable for a future table-to-JSON operation.
 
 ## Operation
 
@@ -10,6 +10,8 @@ The implementation targets the hard case this repository did not previously cove
 | --- | --- | --- |
 | `ExtractPdfText` | `POST /pdf/extract` | Extracted text plus page, truncation, and warning metadata |
 | `ExtractPdfPageChunks` | `POST /pdf/extract-page-chunks` | A JSON array containing Markdown-compatible text and PDF metadata per page |
+| `ExtractPdfMarkdown` | `POST /pdf/extract-markdown` | Rich Markdown plus page, table, tagged-structure, truncation, and warning metadata |
+| `ExtractPdfMarkdownPageChunks` | `POST /pdf/extract-markdown-page-chunks` | A JSON array containing rich Markdown, table count, and PDF metadata per page |
 
 Example request body:
 
@@ -25,7 +27,7 @@ Example request body:
 
 In a flow, bind **PDF Content** directly to the file-content output from SharePoint, OneDrive, Word Online, Excel Online, or another file action. Do not convert it with a Power Automate `base64()` expression; the connector's `format: byte` field handles the transport encoding.
 
-The response contains:
+The plain-text response contains:
 
 - `text`: plain text with optional `--- Page N ---` separators.
 - `hasTextLayer`: whether any selected page contained extractable text.
@@ -34,9 +36,21 @@ The response contains:
 
 `includeArtifacts` defaults to `false`, which removes Office-generated headers, footers, and page numbers when the PDF tagged them as artifacts.
 
+### Rich Markdown response
+
+`ExtractPdfMarkdown` accepts the same request. It is an alternative to `ExtractPdfText`; the plain-text operation and contract remain available. Its `text` field uses:
+
+- ATX headings from tagged `H1`–`H6` elements, with font-size/bold inference when tags are unavailable;
+- unordered and ordered Markdown lists from `L`, `LI`, `Lbl`, and `LBody` structure;
+- bold and italic spans from PDF font traits, plus `<sup>` and `<sub>` for text rise;
+- pipe tables assembled from `Table`/`TR`/`TH`/`TD`, including column and row spans, escaped pipes, and `<br>` for wrapped cell lines;
+- the existing spatial line engine as a fallback for untagged content.
+
+The response sets `contentType` to `text/markdown`, reports rendered `tableCount`, and sets `usedTaggedStructure` when structure tags contributed to the result.
+
 ### Page-chunk response
 
-`ExtractPdfPageChunks` accepts the same request fields. Set the optional `fileName` field when the flow knows the source name, because a PDF byte stream does not retain the SharePoint or OneDrive storage name. The operation returns a bare JSON array so **Apply to each** can consume it directly:
+Both page-chunk operations accept the same request fields. Set the optional `fileName` field when the flow knows the source name, because a PDF byte stream does not retain the SharePoint or OneDrive storage name. Each operation returns a bare JSON array so **Apply to each** can consume it directly. The rich operation additionally returns `tableCount` and `usedTaggedStructure` in every item:
 
 ```json
 [
@@ -66,6 +80,8 @@ The response contains:
     "contentType": "text/markdown",
     "text": "Page-one Markdown-compatible text...",
     "characterCount": 1132,
+    "tableCount": 1,
+    "usedTaggedStructure": true,
     "hasTextLayer": true,
     "truncated": false,
     "warnings": []
@@ -73,7 +89,7 @@ The response contains:
 ]
 ```
 
-The repeated `metadata` object is intentionally close to PyMuPDF4LLM's `page_chunks=True` model while using camel-case fields that are convenient in Power Automate. `title`, `author`, `subject`, `keywords`, `creator`, `producer`, `creationDate`, `modificationDate`, and `trapped` come from the PDF Info dictionary. `format`, `pdfVersion`, `fileSizeBytes`, `pageCount`, `pageNumber`, and page geometry are computed from the PDF itself. Text remains Markdown-compatible plain text; the connector does not invent headings or tables that are absent from the text layer.
+The repeated `metadata` object is intentionally close to PyMuPDF4LLM's `page_chunks=True` model while using camel-case fields that are convenient in Power Automate. `title`, `author`, `subject`, `keywords`, `creator`, `producer`, `creationDate`, `modificationDate`, and `trapped` come from the PDF Info dictionary. `format`, `pdfVersion`, `fileSizeBytes`, `pageCount`, `pageNumber`, and page geometry are computed from the PDF itself. `ExtractPdfPageChunks` preserves the prior Markdown-compatible plain text; `ExtractPdfMarkdownPageChunks` opts into rich layout conversion.
 
 ## Supported PDF features
 
@@ -84,13 +100,15 @@ The repeated `metadata` object is intentionally close to PyMuPDF4LLM's `page_chu
 - `Tj`, `TJ`, quote operators, text matrices, character/word spacing, horizontal scale, and rise.
 - Flate, ASCIIHex, ASCII85, and RunLength stream filters, including TIFF/PNG predictors.
 - Spatial line clustering, inferred spaces, tagged-artifact suppression, and bounded output.
+- Tagged-PDF role maps and structure trees, MCID-to-page association, headings, paragraphs, lists, table rows/cells, and `RowSpan`/`ColSpan` attributes.
+- Rich Markdown escaping, emphasis, superscript/subscript HTML, flowing paragraphs, list normalization, pipe tables, and geometry-aware cell line breaks.
 
 The connector reads text that is already represented in the PDF. A searchable PDF produced by an OCR system is supported; an image-only scan returns `hasTextLayer: false` and an explanatory warning. Encrypted/password-protected PDFs return `ENCRYPTED_PDF_UNSUPPORTED`.
 
 ## Platform constraints addressed
 
 - The script is one `script.csx`, is below the 1 MB custom-code limit, and uses only Microsoft's supported namespaces plus `Newtonsoft.Json`.
-- It implements `public class Script : ScriptBase` and `ExecuteAsync`, and the Swagger operation ID, `scriptOperations`, and route all use `ExtractPdfText`.
+- It implements `public class Script : ScriptBase` and `ExecuteAsync`; every Swagger operation ID is aligned with `scriptOperations` and its custom-code route.
 - It is synchronous, cancellation-aware, has no network dependency, and is designed to stay within the two-minute custom-code timeout.
 - The OpenAPI document is Swagger 2.0 and below 1 MB.
 - Input is capped internally at 20 MiB by default (32 MiB absolute), output at 2 Mi characters by default (6 Mi absolute), decoded streams at 32 MiB each/96 MiB total, text fragments at 250,000 per page, and documents at 1,000 pages. Power Platform transport or gateway limits can be lower and apply before the script starts; base64 adds roughly one third to the request size.
@@ -106,6 +124,15 @@ The reproducible benchmark compares normalized word tokens and token order again
 - exact page-chunk counts and PDF metadata, minimum page F1 >= 0.85, and mean page F1 >= 0.97;
 - connector wall time < 120 seconds.
 
+Rich Markdown is benchmarked independently after removing Markdown/HTML presentation tokens. Table comparison then matches table segments per page and measures flattened table token F1, row/column-count similarity, and greedy cell-content token F1. This separation prevents a correct word with different Markdown punctuation from inflating or depressing the layout score.
+
+| Health Canada fixture | Rich document F1 | Ordered ratio | Mean page F1 | Matched-table F1 | Mean matched-cell F1 | Row / column similarity | Result |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Auro-Irbesartan, `00083665` | 0.989958 | 0.983650 | 0.986625 | 0.968929 | 0.958943 | 0.853265 / 1.000000 | Pass |
+| Oxaliplatin, `00075769` | 0.986910 | 0.983291 | 0.983950 | 0.892455 | 0.927125 | 0.934264 / 0.983333 | Pass |
+
+The oxaliplatin candidate exposes 34 tagged table segments while PyMuPDF4LLM emits 23 geometry-derived segments; segment count is therefore reported, not treated as ground truth. Among matched segments, cell content and row/column shape are scored directly. See `benchmarks/rich-markdown-baseline-results.json` for all counts and timings.
+
 See [`benchmarks/README.md`](benchmarks/README.md) for the pinned fixtures and measured baseline.
 
 Run from the repository root:
@@ -118,6 +145,8 @@ dotnet build testing/PdfTextExtractorRunner/PdfTextExtractorRunner.csproj -c Rel
 python connectors/PdfTextExtractor/benchmarks/benchmark.py \
   --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
 python connectors/PdfTextExtractor/benchmarks/benchmark_page_chunks.py \
+  --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
+python connectors/PdfTextExtractor/benchmarks/benchmark_rich_markdown.py \
   --runner-dll testing/PdfTextExtractorRunner/bin/Release/net8.0/PdfTextExtractorRunner.dll
 ```
 
@@ -132,7 +161,7 @@ The parser is an original, dependency-free implementation based on Adobe's [PDF 
 1. Create or open an unmanaged solution in Power Automate or Power Apps.
 2. Create a custom connector from `apiDefinition.swagger.json`.
 3. In the connector's **Code** tab, enable custom code and paste `script.csx`.
-4. Select both `ExtractPdfText` and `ExtractPdfPageChunks` for custom code, then create/update the connector.
+4. Select `ExtractPdfText`, `ExtractPdfPageChunks`, `ExtractPdfMarkdown`, and `ExtractPdfMarkdownPageChunks` for custom code, then create/update the connector.
 5. Test with an Office-exported searchable PDF and inspect `hasTextLayer`, `warnings`, and `truncated` before consuming `text`.
 
 `api.example.com` is a syntactically valid placeholder host required by the connector definition. `ExtractPdfText` returns from custom code without calling it.
