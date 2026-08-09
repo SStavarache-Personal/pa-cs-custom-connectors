@@ -1,0 +1,21 @@
+{
+  "name": "Reject malformed base64 before conversion",
+  "includeInAutomatedRun": true,
+  "operationId": "ConvertToXlsx",
+  "method": "POST",
+  "relativePath": "/convert-to-xlsx",
+  "requestBody": {
+    "fileName": "broken.xls",
+    "fileContent": "not-valid-base64!"
+  },
+  "outboundStubs": [],
+  "expected": {
+    "statusCode": 400,
+    "bodyJson": {
+      "error": {
+        "code": "INVALID_BASE64"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}
