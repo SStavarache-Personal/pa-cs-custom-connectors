@@ -1,0 +1,219 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "PDF Text Extractor",
+    "description": "Extracts the existing OCR or digital text layer from a PDF entirely inside Power Automate custom code.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/pdf/extract": {
+      "post": {
+        "operationId": "ExtractPdfText",
+        "summary": "Extract PDF text",
+        "description": "Reads an existing searchable text layer from a PDF. It does not send the document to an external service and does not run OCR on image-only pages.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "The PDF and extraction controls.",
+            "schema": {
+              "$ref": "#/definitions/ExtractPdfTextRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Text layer extracted successfully.",
+            "schema": {
+              "$ref": "#/definitions/ExtractPdfTextResponse"
+            }
+          },
+          "400": {
+            "description": "The input was invalid, encrypted, or used an unsupported PDF structure.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "The decoded PDF exceeded maxInputBytes.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The PDF could not be extracted.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ExtractPdfTextRequest": {
+      "type": "object",
+      "required": [
+        "contentBytes"
+      ],
+      "properties": {
+        "contentBytes": {
+          "type": "string",
+          "format": "byte",
+          "description": "PDF file content as base64. A data URL ending in ;base64,<content> is also accepted.",
+          "x-ms-summary": "PDF Content"
+        },
+        "startPage": {
+          "type": "integer",
+          "format": "int32",
+          "default": 1,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "First 1-based page to extract.",
+          "x-ms-summary": "Start Page",
+          "x-ms-visibility": "advanced"
+        },
+        "endPage": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Optional last 1-based page to extract. Defaults to the final page.",
+          "x-ms-summary": "End Page",
+          "x-ms-visibility": "advanced"
+        },
+        "includeArtifacts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include PDF marked-content artifacts such as Office-generated running headers and footers.",
+          "x-ms-summary": "Include Artifacts",
+          "x-ms-visibility": "advanced"
+        },
+        "includePageBreaks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Insert a Markdown-style page marker between extracted pages.",
+          "x-ms-summary": "Include Page Breaks",
+          "x-ms-visibility": "advanced"
+        },
+        "maxInputBytes": {
+          "type": "integer",
+          "format": "int32",
+          "default": 20971520,
+          "minimum": 1024,
+          "maximum": 33554432,
+          "description": "Decoded input guard in bytes. Platform request limits still apply before custom code runs.",
+          "x-ms-summary": "Maximum Input Bytes",
+          "x-ms-visibility": "advanced"
+        },
+        "maxOutputCharacters": {
+          "type": "integer",
+          "format": "int32",
+          "default": 2097152,
+          "minimum": 1000,
+          "maximum": 6291456,
+          "description": "Maximum returned text length. The response reports truncated=true if this limit is reached.",
+          "x-ms-summary": "Maximum Output Characters",
+          "x-ms-visibility": "advanced"
+        }
+      }
+    },
+    "ExtractPdfTextResponse": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Extracted plain text in reading order with optional Markdown-style page separators.",
+          "x-ms-summary": "Text"
+        },
+        "pageCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Total pages in the PDF.",
+          "x-ms-summary": "Page Count"
+        },
+        "pagesExtracted": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Pages processed before the selected range ended or output was truncated.",
+          "x-ms-summary": "Pages Extracted"
+        },
+        "startPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Actual first extracted page.",
+          "x-ms-summary": "Start Page"
+        },
+        "endPage": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Actual last extracted page.",
+          "x-ms-summary": "End Page"
+        },
+        "characterCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "UTF-16 character count of text.",
+          "x-ms-summary": "Character Count"
+        },
+        "hasTextLayer": {
+          "type": "boolean",
+          "description": "True when extractable text was found on at least one selected page.",
+          "x-ms-summary": "Has Text Layer"
+        },
+        "truncated": {
+          "type": "boolean",
+          "description": "True when maxOutputCharacters stopped extraction early.",
+          "x-ms-summary": "Truncated"
+        },
+        "warnings": {
+          "type": "array",
+          "description": "Non-fatal parser, recovery, or output warnings.",
+          "items": {
+            "type": "string"
+          },
+          "x-ms-summary": "Warnings"
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/ErrorDetail"
+        }
+      }
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable connector error code.",
+          "x-ms-summary": "Error Code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable failure reason.",
+          "x-ms-summary": "Error Message"
+        }
+      }
+    }
+  }
+}

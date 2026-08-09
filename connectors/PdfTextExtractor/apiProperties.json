@@ -1,0 +1,12 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#B30B00",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "ExtractPdfText"
+    ]
+  }
+}
