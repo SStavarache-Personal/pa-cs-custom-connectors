@@ -1,0 +1,956 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "SQLite Database",
+    "description": "Reads, queries, mutates, bulk-upserts, and applies SCD Type 2 snapshots to user-provided SQLite database bytes entirely inside Power Automate custom code.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/sqlite/query": {
+      "post": {
+        "operationId": "QuerySqlite",
+        "summary": "Query a SQLite database",
+        "description": "Runs one read-only SQL SELECT query against ordinary rowid tables in the supplied SQLite database and returns one result table.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "SQLite file content, SQL, parameters, and output controls.",
+            "schema": {
+              "$ref": "#/definitions/QuerySqliteRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Query completed successfully.",
+            "schema": {
+              "$ref": "#/definitions/QuerySqliteResponse"
+            }
+          },
+          "400": {
+            "description": "The database, SQL, or options were invalid or unsupported.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The connector safety time budget was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "A configured database, page, row, or output limit was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The query failed unexpectedly.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sqlite/execute": {
+      "post": {
+        "operationId": "ExecuteSqlite",
+        "summary": "Execute SQLite writes",
+        "description": "Executes an in-memory batch of INSERT, UPDATE, DELETE, and supported PRAGMA statements, rebuilds the complete database, and returns validated SQLite bytes.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "SQLite file content and a SQL DML batch.",
+            "schema": {
+              "$ref": "#/definitions/ExecuteSqliteRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The database was updated, rebuilt, reopened, and validated.",
+            "schema": {
+              "$ref": "#/definitions/DatabaseWriteResponse"
+            }
+          },
+          "400": {
+            "description": "The mutation was invalid, unsupported, or violated a supported constraint.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The connector safety time budget was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "A configured input or rebuilt-output limit was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The rebuilt database did not validate or execution failed unexpectedly.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sqlite/bulk-upsert": {
+      "post": {
+        "operationId": "BulkUpsertSqlite",
+        "summary": "Bulk upsert SQLite rows",
+        "description": "Applies JSON objects or RFC-style CSV rows to an existing table using an O(n) key lookup, then returns the complete validated database.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "SQLite file content, target table, source rows, and upsert controls.",
+            "schema": {
+              "$ref": "#/definitions/BulkUpsertRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows were applied and the rebuilt database passed validation.",
+            "schema": {
+              "$ref": "#/definitions/DatabaseWriteResponse"
+            }
+          },
+          "400": {
+            "description": "The input, keys, schema, or resulting constraints were invalid.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The connector safety time budget was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "A configured input or output limit was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The rebuilt database did not validate or execution failed unexpectedly.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sqlite/scd2": {
+      "post": {
+        "operationId": "ApplyScd2Sqlite",
+        "summary": "Apply an SCD Type 2 snapshot",
+        "description": "Compares a JSON or CSV snapshot with current dimension rows, closes changed versions, inserts new versions, and optionally closes or tombstones absent keys.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "SQLite file content, source snapshot, business keys, tracked attributes, and effective-date controls.",
+            "schema": {
+              "$ref": "#/definitions/ApplyScd2Request"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The stateful snapshot was applied and the complete rebuilt database passed validation.",
+            "schema": {
+              "$ref": "#/definitions/DatabaseWriteResponse"
+            }
+          },
+          "400": {
+            "description": "The SCD schema, keys, snapshot order, intervals, or resulting constraints were invalid.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The connector safety time budget was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "A configured input or output limit was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "The rebuilt database did not validate or execution failed unexpectedly.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/sqlite/inspect": {
+      "post": {
+        "operationId": "InspectSqlite",
+        "summary": "Inspect a SQLite database",
+        "description": "Parses the database header, schema, tables, indexes, and supported logical constraints without changing the supplied bytes.",
+        "x-ms-visibility": "advanced",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "SQLite file content and optional parser limits.",
+            "schema": {
+              "$ref": "#/definitions/InspectSqliteRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Database metadata, schema, and logical validation results.",
+            "schema": {
+              "$ref": "#/definitions/InspectSqliteResponse"
+            }
+          },
+          "400": {
+            "description": "The file was malformed, unsupported, or exceeded a parser limit.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The connector safety time budget was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "A configured input limit was exceeded.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "500": {
+            "description": "Inspection failed unexpectedly.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "QuerySqliteRequest": {
+      "type": "object",
+      "required": [
+        "databaseBase64",
+        "sql"
+      ],
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete SQLite database file content as base64.",
+          "x-ms-summary": "SQLite Database Content"
+        },
+        "sql": {
+          "type": "string",
+          "description": "One read-only SELECT query. CTEs, joins, subqueries, grouping, set operations, ordering, and supported window functions are available.",
+          "x-ms-summary": "SQL Query"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Optional scalar values for named @name, :name, or $name placeholders. Values are rendered as SQL literals without making their text executable.",
+          "additionalProperties": {},
+          "x-ms-summary": "SQL Parameters",
+          "x-ms-visibility": "advanced"
+        },
+        "outputMode": {
+          "type": "string",
+          "enum": [
+            "RowsAndSchema",
+            "ObjectArray",
+            "Csv"
+          ],
+          "default": "RowsAndSchema",
+          "description": "Shape of the single returned result table.",
+          "x-ms-summary": "Output Mode"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        },
+        "limits": {
+          "$ref": "#/definitions/SqliteLimits"
+        }
+      }
+    },
+    "ExecuteSqliteRequest": {
+      "type": "object",
+      "required": [
+        "databaseBase64",
+        "sql"
+      ],
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete SQLite database file content as base64.",
+          "x-ms-summary": "SQLite Database Content"
+        },
+        "sql": {
+          "type": "string",
+          "description": "Semicolon-delimited INSERT, UPDATE, DELETE, PRAGMA user_version/application_id, and optional BEGIN/COMMIT wrappers. DDL is intentionally rejected.",
+          "x-ms-summary": "SQL Write Batch"
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Optional scalar values for named @name, :name, or $name placeholders.",
+          "additionalProperties": {},
+          "x-ms-summary": "SQL Parameters",
+          "x-ms-visibility": "advanced"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        },
+        "limits": {
+          "$ref": "#/definitions/SqliteLimits"
+        }
+      }
+    },
+    "BulkUpsertRequest": {
+      "type": "object",
+      "required": [
+        "databaseBase64",
+        "table",
+        "keyColumns"
+      ],
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete SQLite database file content as base64.",
+          "x-ms-summary": "SQLite Database Content"
+        },
+        "table": {
+          "type": "string",
+          "description": "Existing ordinary rowid table to mutate.",
+          "x-ms-summary": "Target Table"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "Json",
+            "Csv"
+          ],
+          "default": "Json",
+          "description": "Source row format. If omitted, Json is inferred when jsonRows is present; otherwise Csv.",
+          "x-ms-summary": "Input Format"
+        },
+        "jsonRows": {
+          "type": "array",
+          "description": "Source objects. Property names are matched to target columns case-insensitively by default.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "x-ms-summary": "JSON Rows"
+        },
+        "csvText": {
+          "type": "string",
+          "description": "CSV text. Quoted separators, escaped quotes, and line breaks inside quoted fields are supported.",
+          "x-ms-summary": "CSV Text"
+        },
+        "csvOptions": {
+          "$ref": "#/definitions/CsvOptions"
+        },
+        "typeOverrides": {
+          "type": "object",
+          "description": "Optional map of source column names to String, Int64, Double, Decimal, Boolean, Date, DateTime, Timestamp, or Null.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-ms-summary": "Source Type Overrides",
+          "x-ms-visibility": "advanced"
+        },
+        "keyColumns": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Target columns forming the lookup key. Existing and source rows must each be unique for this key.",
+          "items": {
+            "type": "string"
+          },
+          "x-ms-summary": "Key Columns"
+        },
+        "updateColumns": {
+          "type": "array",
+          "description": "Columns to update on a match. Defaults to all source columns except keyColumns.",
+          "items": {
+            "type": "string"
+          },
+          "x-ms-summary": "Update Columns",
+          "x-ms-visibility": "advanced"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "Upsert",
+            "InsertOnly",
+            "UpdateOnly"
+          ],
+          "default": "Upsert",
+          "description": "Whether matched and unmatched rows may be written.",
+          "x-ms-summary": "Write Mode"
+        },
+        "nullUpdateBehavior": {
+          "type": "string",
+          "enum": [
+            "OverwriteNulls",
+            "IgnoreNulls"
+          ],
+          "default": "OverwriteNulls",
+          "description": "Whether a source null clears a matched target value or leaves it unchanged.",
+          "x-ms-summary": "Null Update Behavior",
+          "x-ms-visibility": "advanced"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        },
+        "limits": {
+          "$ref": "#/definitions/SqliteLimits"
+        }
+      }
+    },
+    "ApplyScd2Request": {
+      "type": "object",
+      "required": [
+        "databaseBase64",
+        "table",
+        "businessKeyColumns",
+        "snapshotDate"
+      ],
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete SQLite database file content as base64.",
+          "x-ms-summary": "SQLite Database Content"
+        },
+        "table": {
+          "type": "string",
+          "description": "Existing dimension table containing validity and optional state columns.",
+          "x-ms-summary": "Dimension Table"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "Json",
+            "Csv"
+          ],
+          "default": "Json",
+          "description": "Snapshot row format.",
+          "x-ms-summary": "Input Format"
+        },
+        "jsonRows": {
+          "type": "array",
+          "description": "One source object per business key in this snapshot.",
+          "items": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "x-ms-summary": "JSON Snapshot Rows"
+        },
+        "csvText": {
+          "type": "string",
+          "description": "CSV snapshot with a header row by default.",
+          "x-ms-summary": "CSV Snapshot"
+        },
+        "csvOptions": {
+          "$ref": "#/definitions/CsvOptions"
+        },
+        "typeOverrides": {
+          "type": "object",
+          "description": "Optional source column type map.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "x-ms-summary": "Source Type Overrides",
+          "x-ms-visibility": "advanced"
+        },
+        "businessKeyColumns": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Stable columns identifying a dimension member. Current rows and source rows must be unique for this key.",
+          "items": {
+            "type": "string"
+          },
+          "x-ms-summary": "Business Key Columns"
+        },
+        "trackedColumns": {
+          "type": "array",
+          "description": "Attributes whose changes create a new version. Defaults to source columns excluding keys and state columns.",
+          "items": {
+            "type": "string"
+          },
+          "x-ms-summary": "Tracked Columns",
+          "x-ms-visibility": "advanced"
+        },
+        "snapshotDate": {
+          "type": "string",
+          "description": "Effective-from value for new versions. ISO 8601 text is recommended.",
+          "x-ms-summary": "Snapshot Effective Date"
+        },
+        "closeValue": {
+          "type": "string",
+          "description": "Optional effective-to value for closed versions. Defaults to snapshotDate, producing half-open intervals.",
+          "x-ms-summary": "Closed Version End",
+          "x-ms-visibility": "advanced"
+        },
+        "validFromColumn": {
+          "type": "string",
+          "default": "valid_from",
+          "description": "Target effective-from column.",
+          "x-ms-summary": "Valid From Column",
+          "x-ms-visibility": "advanced"
+        },
+        "validToColumn": {
+          "type": "string",
+          "default": "valid_to",
+          "description": "Target effective-to column. Current versions use null.",
+          "x-ms-summary": "Valid To Column",
+          "x-ms-visibility": "advanced"
+        },
+        "isCurrentColumn": {
+          "type": "string",
+          "default": "is_current",
+          "description": "Optional 1/0 current-version flag. Supply an empty string to rely only on validToColumn nullability.",
+          "x-ms-summary": "Is Current Column",
+          "x-ms-visibility": "advanced"
+        },
+        "isDeletedColumn": {
+          "type": "string",
+          "default": "is_deleted",
+          "description": "Optional 1/0 tombstone flag. The default is used automatically when that column exists.",
+          "x-ms-summary": "Is Deleted Column",
+          "x-ms-visibility": "advanced"
+        },
+        "absenceMeansDeletion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Treat current target keys absent from the supplied full snapshot as deletions.",
+          "x-ms-summary": "Absence Means Deletion"
+        },
+        "deletionMode": {
+          "type": "string",
+          "enum": [
+            "CloseOnly",
+            "Tombstone"
+          ],
+          "default": "CloseOnly",
+          "description": "CloseOnly leaves no current version; Tombstone inserts a current version with isDeletedColumn set to 1.",
+          "x-ms-summary": "Deletion Mode",
+          "x-ms-visibility": "advanced"
+        },
+        "engineOptions": {
+          "$ref": "#/definitions/EngineOptions"
+        },
+        "limits": {
+          "$ref": "#/definitions/SqliteLimits"
+        }
+      }
+    },
+    "InspectSqliteRequest": {
+      "type": "object",
+      "required": [
+        "databaseBase64"
+      ],
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete SQLite database file content as base64.",
+          "x-ms-summary": "SQLite Database Content"
+        },
+        "limits": {
+          "$ref": "#/definitions/SqliteLimits"
+        }
+      }
+    },
+    "SqliteLimits": {
+      "type": "object",
+      "description": "Resource guards applied before or during parsing and rebuilding.",
+      "properties": {
+        "maxDatabaseBytes": {
+          "type": "integer",
+          "format": "int32",
+          "default": 33554432,
+          "minimum": 512,
+          "maximum": 67108864,
+          "description": "Maximum decoded input and rebuilt output size. Platform payload limits may be lower.",
+          "x-ms-summary": "Maximum Database Bytes"
+        },
+        "maxRows": {
+          "type": "integer",
+          "format": "int32",
+          "default": 500000,
+          "minimum": 1,
+          "maximum": 2000000,
+          "description": "Maximum rows materialized across all ordinary tables.",
+          "x-ms-summary": "Maximum Database Rows"
+        },
+        "maxPages": {
+          "type": "integer",
+          "format": "int32",
+          "default": 131072,
+          "minimum": 1,
+          "maximum": 262144,
+          "description": "Maximum SQLite pages parsed or emitted.",
+          "x-ms-summary": "Maximum Database Pages"
+        },
+        "maxSqlStatements": {
+          "type": "integer",
+          "format": "int32",
+          "default": 100,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum statements accepted by ExecuteSqlite.",
+          "x-ms-summary": "Maximum SQL Statements"
+        },
+        "allowWalSnapshot": {
+          "type": "boolean",
+          "default": false,
+          "description": "Permit rebuilding a main database whose header is in WAL mode. Use only after checkpointing and supplying the current main file; an unprovided -wal file may contain newer commits.",
+          "x-ms-summary": "Allow WAL Snapshot Rewrite"
+        }
+      },
+      "x-ms-visibility": "advanced"
+    },
+    "EngineOptions": {
+      "type": "object",
+      "description": "In-memory SQL execution controls.",
+      "properties": {
+        "caseSensitiveIdentifiers": {
+          "type": "boolean",
+          "default": false,
+          "description": "Require exact identifier casing.",
+          "x-ms-summary": "Case-Sensitive Identifiers"
+        },
+        "nullsSortFirst": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sort null values before non-null values unless ordering is descending.",
+          "x-ms-summary": "Nulls Sort First"
+        },
+        "maxOutputRows": {
+          "type": "integer",
+          "format": "int32",
+          "default": 100000,
+          "minimum": 1,
+          "maximum": 1000000,
+          "description": "Maximum rows returned by QuerySqlite or intermediate SELECTs used by DML.",
+          "x-ms-summary": "Maximum Output Rows"
+        }
+      },
+      "x-ms-visibility": "advanced"
+    },
+    "CsvOptions": {
+      "type": "object",
+      "properties": {
+        "separator": {
+          "type": "string",
+          "default": ",",
+          "maxLength": 1,
+          "description": "Single field separator character.",
+          "x-ms-summary": "CSV Separator"
+        },
+        "quote": {
+          "type": "string",
+          "default": "\"",
+          "maxLength": 1,
+          "description": "Single quote character used around fields.",
+          "x-ms-summary": "CSV Quote"
+        },
+        "lineBreak": {
+          "type": "string",
+          "enum": [
+            "Auto",
+            "LF",
+            "CRLF",
+            "CR"
+          ],
+          "default": "Auto",
+          "description": "Record line-break convention outside quoted fields.",
+          "x-ms-summary": "CSV Line Break"
+        },
+        "firstRowIsHeader": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use the first record as source column names.",
+          "x-ms-summary": "First Row Is Header"
+        },
+        "allColumnsAsString": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable automatic source type inference.",
+          "x-ms-summary": "All Columns As String"
+        }
+      },
+      "x-ms-visibility": "advanced"
+    },
+    "QuerySqliteResponse": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "Selected output mode."
+        },
+        "rowCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Rows in the result table."
+        },
+        "durationMs": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Connector execution time in milliseconds."
+        },
+        "database": {
+          "$ref": "#/definitions/DatabaseMetadata"
+        },
+        "result": {
+          "$ref": "#/definitions/QueryResult"
+        }
+      }
+    },
+    "QueryResult": {
+      "type": "object",
+      "description": "Contains csv for Csv mode, schema plus row arrays for RowsAndSchema, or object rows for ObjectArray.",
+      "properties": {
+        "csv": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResultColumn"
+          }
+        },
+        "rows": {
+          "type": "array",
+          "items": {}
+        }
+      }
+    },
+    "ResultColumn": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "nullable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseWriteResponse": {
+      "type": "object",
+      "properties": {
+        "databaseBase64": {
+          "type": "string",
+          "format": "byte",
+          "description": "Complete rebuilt SQLite database file as base64.",
+          "x-ms-summary": "Updated SQLite Database"
+        },
+        "databaseSizeBytes": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Decoded output file size."
+        },
+        "durationMs": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Connector execution time in milliseconds."
+        },
+        "changes": {
+          "$ref": "#/definitions/ChangeSummary"
+        },
+        "database": {
+          "$ref": "#/definitions/DatabaseMetadata"
+        },
+        "integrity": {
+          "$ref": "#/definitions/IntegrityResult"
+        }
+      }
+    },
+    "ChangeSummary": {
+      "type": "object",
+      "properties": {
+        "statements": { "type": "integer", "format": "int32" },
+        "inserted": { "type": "integer", "format": "int32" },
+        "updated": { "type": "integer", "format": "int32" },
+        "deleted": { "type": "integer", "format": "int32" },
+        "unchanged": { "type": "integer", "format": "int32" },
+        "closedVersions": { "type": "integer", "format": "int32" },
+        "tombstones": { "type": "integer", "format": "int32" },
+        "schemaChanges": { "type": "integer", "format": "int32" },
+        "totalChanged": { "type": "integer", "format": "int32" }
+      }
+    },
+    "DatabaseMetadata": {
+      "type": "object",
+      "properties": {
+        "pageSize": { "type": "integer", "format": "int32" },
+        "pageCount": { "type": "integer", "format": "int32" },
+        "encoding": { "type": "string" },
+        "walMode": { "type": "boolean" },
+        "autoVacuum": { "type": "boolean" },
+        "userVersion": { "type": "integer", "format": "int64" },
+        "applicationId": { "type": "integer", "format": "int64" },
+        "tableCount": { "type": "integer", "format": "int32" },
+        "indexCount": { "type": "integer", "format": "int32" },
+        "rowCount": { "type": "integer", "format": "int32" },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "IntegrityResult": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean",
+          "description": "True only when all connector checks passed."
+        },
+        "checks": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "sourceTableCount": { "type": "integer", "format": "int32" },
+        "reopenedTableCount": { "type": "integer", "format": "int32" }
+      }
+    },
+    "InspectSqliteResponse": {
+      "type": "object",
+      "properties": {
+        "durationMs": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "database": {
+          "$ref": "#/definitions/DatabaseMetadata"
+        },
+        "schema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TableSchema"
+          }
+        },
+        "integrity": {
+          "$ref": "#/definitions/IntegrityResult"
+        }
+      }
+    },
+    "TableSchema": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "rootPage": { "type": "integer", "format": "int32" },
+        "rowCount": { "type": "integer", "format": "int32" },
+        "writable": { "type": "boolean" },
+        "unsupportedReason": { "type": "string" },
+        "sql": { "type": "string" },
+        "columns": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ColumnSchema" }
+        },
+        "indexes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ColumnSchema": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "declaredType": { "type": "string" },
+        "notNull": { "type": "boolean" },
+        "primaryKey": { "type": "boolean" },
+        "integerPrimaryKey": { "type": "boolean" },
+        "unique": { "type": "boolean" }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/ErrorDetail"
+        }
+      }
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "description": "Stable connector error code.",
+          "x-ms-summary": "Error Code"
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable failure reason.",
+          "x-ms-summary": "Error Message"
+        },
+        "details": {
+          "type": "object",
+          "description": "Optional structured diagnostics.",
+          "additionalProperties": {}
+        }
+      }
+    }
+  }
+}

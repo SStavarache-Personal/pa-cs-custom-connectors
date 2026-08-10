@@ -1,0 +1,27 @@
+{
+  "name": "Inspect a valid empty 512-byte SQLite database",
+  "includeInAutomatedRun": true,
+  "operationId": "InspectSqlite",
+  "method": "POST",
+  "relativePath": "/sqlite/inspect",
+  "requestBody": {
+    "databaseBase64": "U1FMaXRlIGZvcm1hdCAzAAIAAQEAQCAgAAAAAQAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAC6KFA0AAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+  },
+  "outboundStubs": [],
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "database": {
+        "pageSize": 512,
+        "pageCount": 1,
+        "tableCount": 0,
+        "rowCount": 0,
+        "userVersion": 1
+      },
+      "integrity": {
+        "ok": true
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}
