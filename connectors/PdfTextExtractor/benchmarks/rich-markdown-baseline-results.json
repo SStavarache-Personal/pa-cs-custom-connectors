@@ -1,0 +1,160 @@
+{
+  "recordedAt": "2026-08-10",
+  "dotnetSdkVersion": "8.0.423",
+  "pymupdf4llmVersion": "1.28.2",
+  "thresholds": {
+    "minimumDocumentTokenF1": 0.97,
+    "minimumDocumentTokenSequenceRatio": 0.94,
+    "minimumMeanPageTokenF1": 0.96,
+    "minimumMatchedTableTokenF1": 0.88,
+    "minimumMeanMatchedCellTokenF1": 0.7,
+    "maximumConnectorSeconds": 120
+  },
+  "fixtures": [
+    {
+      "fixture": {
+        "id": "health-canada-auro-irbesartan-00083665",
+        "url": "https://pdf.hres.ca/dpd_pm/00083665.PDF",
+        "sha256": "193e309f9cbe17bfd3e9e77d9ff3a2e73b1772f4bac4cd2a4001f3bc6243a25e",
+        "creator": "Microsoft\u00ae Word for Microsoft 365",
+        "description": "34-page Health Canada product monograph with tables, bullets, mixed fonts, superscripts, and tagged artifacts."
+      },
+      "fixtureBytes": 656821,
+      "fullConnectorSeconds": 0.40930124599981355,
+      "pageChunkConnectorSeconds": 0.44313441600388614,
+      "referenceSeconds": 30.31105728699913,
+      "fullConnectorDiagnostics": {
+        "elapsedMilliseconds": 268,
+        "pageCount": 34,
+        "pagesExtracted": 34,
+        "characterCount": 73249,
+        "hasTextLayer": true,
+        "tableCount": 17,
+        "usedTaggedStructure": true,
+        "truncated": false,
+        "warnings": []
+      },
+      "pageChunkConnectorDiagnostics": {
+        "elapsedMilliseconds": 272,
+        "pageCount": 34,
+        "pageChunks": 34,
+        "characterCount": 72630,
+        "hasTextLayer": true,
+        "tableCount": 17,
+        "usedTaggedStructure": true,
+        "truncated": false
+      },
+      "pageCountMatches": true,
+      "metadataValid": true,
+      "metadataErrors": [],
+      "documentMetrics": {
+        "candidateTokens": 9507,
+        "referenceTokens": 9514,
+        "matchingTokens": 9415,
+        "tokenPrecision": 0.9903229199537184,
+        "tokenRecall": 0.9895942821105739,
+        "tokenF1": 0.9899584669575732,
+        "tokenSequenceRatio": 0.983649650386415
+      },
+      "minimumPageTokenF1": 0.9147982062780269,
+      "meanPageTokenF1": 0.9866254665449238,
+      "tableMetrics": {
+        "candidateTableSegments": 17,
+        "referenceTableSegments": 18,
+        "matchedTableSegments": 16,
+        "candidateSegmentMatchRate": 0.9411764705882353,
+        "referenceSegmentCoverage": 0.8888888888888888,
+        "matchedTableTokenF1": 0.968928660203828,
+        "meanMatchedTableTokenF1": 0.9286194326769669,
+        "meanRowCountSimilarity": 0.8532647907647908,
+        "meanColumnCountSimilarity": 1.0,
+        "matchedCells": 316,
+        "candidateNonemptyCells": 324,
+        "referenceNonemptyCells": 353,
+        "meanMatchedCellTokenF1": 0.95894334003774
+      },
+      "featureCounts": {
+        "candidateHeadings": 52,
+        "referenceHeadings": 101,
+        "candidateListItems": 59,
+        "referenceListItems": 60,
+        "candidateBoldRuns": 297,
+        "referenceBoldRuns": 329
+      },
+      "passed": true
+    },
+    {
+      "fixture": {
+        "id": "health-canada-oxaliplatin-00075769",
+        "url": "https://pdf.hres.ca/dpd_pm/00075769.PDF",
+        "sha256": "0a6e96b2ee9428a320220d90d208b7ee0ded1a419b221f01270885536a7547fe",
+        "creator": "Microsoft\u00ae Word for Microsoft 365",
+        "description": "37-page Health Canada product monograph with dense tables, bullets, symbols, and mixed simple/CID fonts."
+      },
+      "fixtureBytes": 826561,
+      "fullConnectorSeconds": 0.5469644639961189,
+      "pageChunkConnectorSeconds": 0.5350687129975995,
+      "referenceSeconds": 25.298943569003313,
+      "fullConnectorDiagnostics": {
+        "elapsedMilliseconds": 346,
+        "pageCount": 37,
+        "pagesExtracted": 37,
+        "characterCount": 87503,
+        "hasTextLayer": true,
+        "tableCount": 34,
+        "usedTaggedStructure": true,
+        "truncated": false,
+        "warnings": []
+      },
+      "pageChunkConnectorDiagnostics": {
+        "elapsedMilliseconds": 331,
+        "pageCount": 37,
+        "pageChunks": 37,
+        "characterCount": 86827,
+        "hasTextLayer": true,
+        "tableCount": 34,
+        "usedTaggedStructure": true,
+        "truncated": false
+      },
+      "pageCountMatches": true,
+      "metadataValid": true,
+      "metadataErrors": [],
+      "documentMetrics": {
+        "candidateTokens": 11883,
+        "referenceTokens": 11876,
+        "matchingTokens": 11724,
+        "tokenPrecision": 0.9866195405200707,
+        "tokenRecall": 0.9872010778039744,
+        "tokenF1": 0.9869102234942547,
+        "tokenSequenceRatio": 0.9832905425312514
+      },
+      "minimumPageTokenF1": 0.9221732745961821,
+      "meanPageTokenF1": 0.98394980549155,
+      "tableMetrics": {
+        "candidateTableSegments": 34,
+        "referenceTableSegments": 23,
+        "matchedTableSegments": 20,
+        "candidateSegmentMatchRate": 0.5882352941176471,
+        "referenceSegmentCoverage": 0.8695652173913043,
+        "matchedTableTokenF1": 0.8924551896623594,
+        "meanMatchedTableTokenF1": 0.8781626152975873,
+        "meanRowCountSimilarity": 0.934263728013728,
+        "meanColumnCountSimilarity": 0.9833333333333334,
+        "matchedCells": 356,
+        "candidateNonemptyCells": 398,
+        "referenceNonemptyCells": 395,
+        "meanMatchedCellTokenF1": 0.9271246162907192
+      },
+      "featureCounts": {
+        "candidateHeadings": 50,
+        "referenceHeadings": 124,
+        "candidateListItems": 87,
+        "referenceListItems": 128,
+        "candidateBoldRuns": 372,
+        "referenceBoldRuns": 367
+      },
+      "passed": true
+    }
+  ],
+  "passed": true
+}

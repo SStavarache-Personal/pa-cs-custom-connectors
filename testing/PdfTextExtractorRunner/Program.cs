@@ -21,7 +21,7 @@ public static class Program
 
         string pdfPath = Path.GetFullPath(args[0]);
         bool includeArtifacts = args.Length > 1 && bool.Parse(args[1]);
-        string outputPath = args.Length > 2 ? Path.GetFullPath(args[2]) : null;
+        string outputPath = args.Length > 2 && args[2] != "-" ? Path.GetFullPath(args[2]) : null;
         string operationId = args.Length > 6 ? args[6] : "ExtractPdfText";
         string fileName = args.Length > 7 ? args[7] : Path.GetFileName(pdfPath);
         byte[] bytes = File.ReadAllBytes(pdfPath);
@@ -36,9 +36,13 @@ public static class Program
         if (args.Length > 3) body["startPage"] = int.Parse(args[3]);
         if (args.Length > 4 && !string.Equals(args[4], "null", StringComparison.OrdinalIgnoreCase)) body["endPage"] = int.Parse(args[4]);
         if (args.Length > 5) body["maxOutputCharacters"] = int.Parse(args[5]);
-        string relativePath = string.Equals(operationId, "ExtractPdfPageChunks", StringComparison.Ordinal)
-            ? "/pdf/extract-page-chunks"
-            : "/pdf/extract";
+        bool isPageChunks = string.Equals(operationId, "ExtractPdfPageChunks", StringComparison.Ordinal) ||
+            string.Equals(operationId, "ExtractPdfMarkdownPageChunks", StringComparison.Ordinal);
+        string relativePath = string.Equals(operationId, "ExtractPdfMarkdownPageChunks", StringComparison.Ordinal)
+            ? "/pdf/extract-markdown-page-chunks"
+            : string.Equals(operationId, "ExtractPdfMarkdown", StringComparison.Ordinal)
+                ? "/pdf/extract-markdown"
+                : isPageChunks ? "/pdf/extract-page-chunks" : "/pdf/extract";
         var request = new HttpRequestMessage(HttpMethod.Post, "https://api.example.com" + relativePath)
         {
             Content = new StringContent(body.ToString(Formatting.None), Encoding.UTF8, "application/json")
@@ -59,7 +63,7 @@ public static class Program
             return 1;
         }
 
-        if (string.Equals(operationId, "ExtractPdfPageChunks", StringComparison.Ordinal))
+        if (isPageChunks)
         {
             JArray chunks = JArray.Parse(responseJson);
             if (outputPath == null) Console.Write(chunks.ToString(Formatting.Indented));
@@ -71,6 +75,8 @@ public static class Program
                 ["pageChunks"] = chunks.Count,
                 ["characterCount"] = chunks.Sum(item => (int)item["characterCount"]),
                 ["hasTextLayer"] = chunks.Any(item => (bool)item["hasTextLayer"]),
+                ["tableCount"] = chunks.Sum(item => (int?)item["tableCount"] ?? 0),
+                ["usedTaggedStructure"] = chunks.Any(item => (bool?)item["usedTaggedStructure"] ?? false),
                 ["truncated"] = chunks.Any(item => (bool)item["truncated"])
             }.ToString(Formatting.None));
         }
@@ -87,6 +93,8 @@ public static class Program
                 ["pagesExtracted"] = parsed["pagesExtracted"],
                 ["characterCount"] = parsed["characterCount"],
                 ["hasTextLayer"] = parsed["hasTextLayer"],
+                ["tableCount"] = parsed["tableCount"],
+                ["usedTaggedStructure"] = parsed["usedTaggedStructure"],
                 ["truncated"] = parsed["truncated"],
                 ["warnings"] = parsed["warnings"]
             }.ToString(Formatting.None));
