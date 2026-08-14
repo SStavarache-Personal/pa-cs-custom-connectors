@@ -1,0 +1,37 @@
+{
+  "name": "Product monograph OCR suppresses low-confidence Flate raster text",
+  "description": "Synthetic dominant full-page DeviceGray/Flate PDF exercising raster decoding, OCR segmentation, confidence gating, and zero outbound requests.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractProductMonographOcr",
+  "method": "POST",
+  "relativePath": "/monographs/ocr",
+  "requestBody": {
+    "contentBytes": "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",
+    "fileName": "synthetic-flate-scan.pdf",
+    "minimumConfidence": 0.99,
+    "maxPagesPerCall": 1
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "pageCount": 1,
+      "pagesReturned": 1,
+      "pages": [
+        {
+          "text": "",
+          "characterCount": 0,
+          "hasTextLayer": false,
+          "extractionMethod": "ocr",
+          "ocrStatus": "lowConfidence",
+          "sourceImage": {
+            "filter": "FlateDecode",
+            "width": 600,
+            "height": 800
+          }
+        }
+      ]
+    },
+    "bodyTextContains": "uncertain text was suppressed",
+    "outboundRequestCount": 0
+  }
+}

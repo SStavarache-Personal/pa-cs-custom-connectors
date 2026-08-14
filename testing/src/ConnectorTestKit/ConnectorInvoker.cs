@@ -159,6 +159,7 @@ public sealed class ConnectorInvoker
         references.Add(MetadataReference.CreateFromFile(typeof(Newtonsoft.Json.Linq.JObject).Assembly.Location));
         references.Add(MetadataReference.CreateFromFile(typeof(Microsoft.Extensions.Logging.ILogger).Assembly.Location));
         references.Add(MetadataReference.CreateFromFile(typeof(System.Web.HttpUtility).Assembly.Location));
+        references.Add(MetadataReference.CreateFromFile(typeof(System.Drawing.Bitmap).Assembly.Location));
 
         return references;
     }

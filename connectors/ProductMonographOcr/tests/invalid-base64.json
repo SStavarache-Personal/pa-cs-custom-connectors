@@ -1,0 +1,20 @@
+{
+  "name": "Product monograph OCR rejects invalid base64",
+  "description": "Malformed content is rejected before PDF parsing or any outbound call.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractProductMonographOcr",
+  "method": "POST",
+  "relativePath": "/monographs/ocr",
+  "requestBody": {
+    "contentBytes": "not-base64!"
+  },
+  "expected": {
+    "statusCode": 400,
+    "bodyJson": {
+      "error": {
+        "code": "INVALID_BASE64"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}
