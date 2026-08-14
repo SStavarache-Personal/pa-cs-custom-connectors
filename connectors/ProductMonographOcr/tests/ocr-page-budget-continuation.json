@@ -1,0 +1,44 @@
+{
+  "name": "Product monograph OCR limits OCR candidates and returns nextPage",
+  "description": "Two image-free pages enter the OCR path; a one-page OCR budget returns deterministic continuation metadata.",
+  "includeInAutomatedRun": true,
+  "operationId": "ExtractProductMonographOcr",
+  "method": "POST",
+  "relativePath": "/monographs/ocr",
+  "requestBody": {
+    "contentBytes": "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUiA0IDAgUl0gL0NvdW50IDIgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNiAwIFIgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCAwID4+CnN0cmVhbQoKZW5kc3RyZWFtCmVuZG9iago2IDAgb2JqCjw8IC9MZW5ndGggMCA+PgpzdHJlYW0KCmVuZHN0cmVhbQplbmRvYmoKdHJhaWxlcgo8PCAvUm9vdCAxIDAgUiAvU2l6ZSA3ID4+CiUlRU9G",
+    "fileName": "two-empty-pages.pdf",
+    "startPage": 1,
+    "maxPagesPerCall": 1
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "sourcePageCount": 2,
+      "startPage": 1,
+      "pagesReturned": 1,
+      "processedRange": {
+        "startPage": 1,
+        "endPage": 1,
+        "pagesReturned": 1,
+        "ocrPagesProcessed": 1
+      },
+      "completed": false,
+      "nextPage": 2,
+      "nextStartPage": 2,
+      "hasMorePages": true,
+      "pages": [
+        {
+          "metadata": {
+            "pageCount": 2,
+            "pageNumber": 1
+          },
+          "text": "",
+          "extractionMethod": "none",
+          "ocrStatus": "noImage"
+        }
+      ]
+    },
+    "outboundRequestCount": 0
+  }
+}

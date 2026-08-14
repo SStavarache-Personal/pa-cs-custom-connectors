@@ -1,6 +1,6 @@
 {
   "name": "Product monograph OCR returns deterministic continuation",
-  "description": "Offline two-page fixture proving maxPagesPerCall and nextStartPage without OCR.",
+  "description": "Offline two-page fixture proving a complete full-document text-layer pass without consuming the OCR-page budget.",
   "includeInAutomatedRun": true,
   "operationId": "ExtractProductMonographOcr",
   "method": "POST",
@@ -16,9 +16,11 @@
     "bodyJson": {
       "pageCount": 2,
       "startPage": 1,
-      "pagesReturned": 1,
-      "nextStartPage": 2,
-      "hasMorePages": true,
+      "sourcePageCount": 2,
+      "pagesReturned": 2,
+      "completed": true,
+      "nextPage": null,
+      "hasMorePages": false,
       "pages": [
         {
           "metadata": {
@@ -26,6 +28,15 @@
             "pageNumber": 1
           },
           "text": "First page markdown chunk",
+          "extractionMethod": "textLayer",
+          "ocrStatus": "notRequired"
+        },
+        {
+          "metadata": {
+            "pageCount": 2,
+            "pageNumber": 2
+          },
+          "text": "Second page markdown chunk",
           "extractionMethod": "textLayer",
           "ocrStatus": "notRequired"
         }

@@ -27,7 +27,7 @@ public static class Program
             ["contentBytes"] = Convert.ToBase64String(bytes),
             ["fileName"] = Path.GetFileName(pdfPath),
             ["startPage"] = args.Length > 2 ? int.Parse(args[2]) : 1,
-            ["maxPagesPerCall"] = args.Length > 3 ? int.Parse(args[3]) : 2,
+            ["maxPagesPerCall"] = args.Length > 3 ? int.Parse(args[3]) : 25,
             ["languageHint"] = args.Length > 4 ? args[4] : "auto",
             ["minimumConfidence"] = args.Length > 5 ? double.Parse(args[5]) : 0.86,
             ["maxOutputCharacters"] = 6 * 1024 * 1024
@@ -62,7 +62,8 @@ public static class Program
             ["connectorMilliseconds"] = parsed["elapsedMilliseconds"],
             ["pageCount"] = parsed["pageCount"],
             ["pagesReturned"] = parsed["pagesReturned"],
-            ["nextStartPage"] = parsed["nextStartPage"],
+            ["completed"] = parsed["completed"],
+            ["nextPage"] = parsed["nextPage"],
             ["statuses"] = new JArray(parsed["pages"] is JArray pages ? pages.Select(page => page["ocrStatus"]) : new JToken[0])
         }.ToString(Formatting.None));
         return 0;

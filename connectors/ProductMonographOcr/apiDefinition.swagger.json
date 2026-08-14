@@ -75,11 +75,11 @@
         "maxPagesPerCall": {
           "type": "integer",
           "format": "int32",
-          "default": 2,
+          "default": 25,
           "minimum": 1,
-          "maximum": 10,
-          "description": "Maximum pages processed before returning continuation metadata.",
-          "x-ms-summary": "Maximum Pages"
+          "maximum": 25,
+          "description": "Maximum OCR-candidate pages processed before returning continuation metadata. Pages with usable text layers do not consume this budget.",
+          "x-ms-summary": "Maximum OCR Pages"
         },
         "languageHint": {
           "type": "string",
@@ -114,9 +114,13 @@
       "type": "object",
       "properties": {
         "pageCount": { "type": "integer", "format": "int32", "description": "Total PDF page count." },
+        "sourcePageCount": { "type": "integer", "format": "int32", "description": "Total source PDF page count." },
         "startPage": { "type": "integer", "format": "int32", "description": "Requested page at which this batch started." },
         "pagesReturned": { "type": "integer", "format": "int32", "description": "Number of page chunks returned." },
-        "nextStartPage": { "type": "integer", "format": "int32", "x-nullable": true, "description": "Pass this value to startPage for the next batch; null when complete." },
+        "processedRange": { "$ref": "#/definitions/ProcessedRange" },
+        "completed": { "type": "boolean", "description": "True when every source page has been classified and returned." },
+        "nextPage": { "type": "integer", "format": "int32", "x-nullable": true, "description": "Pass this value to startPage for the next batch; null when complete." },
+        "nextStartPage": { "type": "integer", "format": "int32", "x-nullable": true, "description": "Compatibility alias for nextPage." },
         "hasMorePages": { "type": "boolean", "description": "True when another batch remains." },
         "deadlineReached": { "type": "boolean", "description": "True when the 100-second soft deadline stopped the batch." },
         "elapsedMilliseconds": { "type": "integer", "format": "int64", "description": "Connector processing time for the batch." },
@@ -129,6 +133,15 @@
           "items": { "type": "string" },
           "description": "Document-level parser and recovery warnings."
         }
+      }
+    },
+    "ProcessedRange": {
+      "type": "object",
+      "properties": {
+        "startPage": { "type": "integer", "format": "int32", "x-nullable": true },
+        "endPage": { "type": "integer", "format": "int32", "x-nullable": true },
+        "pagesReturned": { "type": "integer", "format": "int32" },
+        "ocrPagesProcessed": { "type": "integer", "format": "int32" }
       }
     },
     "OcrPageChunk": {
