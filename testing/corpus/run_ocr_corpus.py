@@ -150,6 +150,7 @@ def main() -> int:
 
     report = {
         "generatedUtc": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "selection": str(args.selection).replace("\\", "/"),
         "sampleSize": len(final_rows),
         "terminalStatusCounts": dict(sorted(collections.Counter(row["terminalStatus"] for row in final_rows).items())),
         "completedOrderedDocuments": sum(row.get("terminalStatus") == "completed" and row.get("orderedCompletePages") for row in final_rows),

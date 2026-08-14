@@ -31,6 +31,8 @@ python testing/corpus/validate_gold.py --annotation testing/corpus/gold/00063498
 
 Files above the unchanged extractor's 32 MiB cap receive `requiresOcr`; they are not silently dropped. Every selection row receives a terminal harness disposition. A semantic-model language match is useful evidence, but it is not a gold label for control numbers, dates, template families, or exact section boundaries.
 
+The executed 38-document smoke selection is committed as `manifests/parser-smoke-candidates-2026-08-14.jsonl`; it includes every file above 20 MiB in the snapshot, the locked `00003161` scan, balanced language examples, and unlabeled examples.
+
 ## Gold evidence
 
 `gold/` contains human-verifiable annotations and exact UTF-8 SHA-256 hashes for section Markdown. Do not promote automatically inferred parser output into gold. A 400-document acceptance set is only locked once all four requested strata have 100 independently verified annotations and tuning/holdout assignment is immutable.

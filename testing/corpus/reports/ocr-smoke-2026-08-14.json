@@ -1,12 +1,13 @@
 {
-  "generatedUtc": "2026-08-14T07:09:08Z",
+  "generatedUtc": "2026-08-14T07:16:24Z",
+  "selection": "testing/corpus/manifests/parser-smoke-candidates-2026-08-14.jsonl",
   "sampleSize": 13,
   "terminalStatusCounts": {
     "completed": 13
   },
   "completedOrderedDocuments": 13,
   "maximumInputBytes": 43716854,
-  "maximumInvocationMilliseconds": 1046,
+  "maximumInvocationMilliseconds": 1084,
   "over32MiB": [
     {
       "name": "00071739.pdf",

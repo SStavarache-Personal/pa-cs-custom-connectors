@@ -1,6 +1,6 @@
 {
-  "generatedUtc": "2026-08-14T07:09:28Z",
-  "selection": "testing/corpus/tmp/parser-smoke-candidates.jsonl",
+  "generatedUtc": "2026-08-14T07:15:59Z",
+  "selection": "testing/corpus/manifests/parser-smoke-candidates-2026-08-14.jsonl",
   "sampleSize": 38,
   "terminalStatusCounts": {
     "needsReview": 5,
