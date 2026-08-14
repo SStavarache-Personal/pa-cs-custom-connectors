@@ -1,0 +1,24 @@
+{
+  "documentId": "00063498",
+  "passed": true,
+  "checks": {
+    "language": true,
+    "templateFamily": true,
+    "controlNumber": true,
+    "initialAuthorization": true,
+    "revision": true,
+    "section:indications:startPage": true,
+    "section:indications:sha256": true,
+    "section:pediatricsPrimary:startPage": true,
+    "section:pediatricsPrimary:matchedHeading": true,
+    "section:pediatricsPrimary:sha256": true,
+    "section:geriatricsPrimary:startPage": true,
+    "section:geriatricsPrimary:matchedHeading": true,
+    "section:geriatricsPrimary:sha256": true,
+    "section:contraindications:startPage": true,
+    "section:contraindications:matchedHeading": true,
+    "section:contraindications:sha256": true
+  },
+  "passedCount": 16,
+  "checkCount": 16
+}

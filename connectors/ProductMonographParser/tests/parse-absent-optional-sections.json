@@ -1,0 +1,52 @@
+{
+  "name": "ParseProductMonograph distinguishes absent optional fields from failure",
+  "description": "A valid monograph can be parsed when revision, pediatric, and geriatric blocks are genuinely absent.",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": {
+          "pageCount": 1,
+          "pageNumber": 1
+        },
+        "contentType": "text/markdown",
+        "text": "PRODUCT MONOGRAPH\n\nControl Number: 666666\n\nDate of Initial Authorization: 2021-06-30\n\n# 1 INDICATIONS\n\nIndication text.\n\n# 2 CONTRAINDICATIONS\n\nContraindication text.\n\n# 3 WARNINGS AND PRECAUTIONS\n\nWarning text.",
+        "truncated": false,
+        "warnings": []
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "documentStatus": "parsed",
+      "dates": {
+        "initialAuthorization": {
+          "status": "found",
+          "isoValue": "2021-06-30"
+        },
+        "revision": {
+          "status": "notFound"
+        }
+      },
+      "sections": {
+        "pediatrics": {
+          "primary": {
+            "status": "notFound"
+          },
+          "additional": []
+        },
+        "geriatrics": {
+          "primary": {
+            "status": "notFound"
+          },
+          "additional": []
+        }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

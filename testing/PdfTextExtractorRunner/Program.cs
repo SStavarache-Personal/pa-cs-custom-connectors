@@ -31,6 +31,7 @@ public static class Program
             ["includeArtifacts"] = includeArtifacts,
             ["includePageBreaks"] = true,
             ["fileName"] = fileName,
+            ["maxInputBytes"] = 32 * 1024 * 1024,
             ["maxOutputCharacters"] = 6 * 1024 * 1024
         };
         if (args.Length > 3) body["startPage"] = int.Parse(args[3]);

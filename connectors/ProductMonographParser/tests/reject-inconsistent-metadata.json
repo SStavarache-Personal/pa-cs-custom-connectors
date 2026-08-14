@@ -1,0 +1,44 @@
+{
+  "name": "ParseProductMonograph rejects inconsistent document metadata",
+  "description": "Page chunks from different source documents cannot be combined silently.",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": {
+          "fileName": "one.pdf",
+          "pageCount": 2,
+          "pageNumber": 1
+        },
+        "contentType": "text/markdown",
+        "text": "PRODUCT MONOGRAPH"
+      },
+      {
+        "metadata": {
+          "fileName": "two.pdf",
+          "pageCount": 2,
+          "pageNumber": 2
+        },
+        "contentType": "text/markdown",
+        "text": "# 1 INDICATIONS"
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 400,
+    "bodyJson": {
+      "error": {
+        "code": "INVALID_PAGES",
+        "message": "Document metadata must be consistent across page chunks.",
+        "details": {
+          "index": 1,
+          "field": "fileName"
+        }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

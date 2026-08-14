@@ -1,0 +1,141 @@
+{
+  "name": "ParseProductMonograph parses modern English metadata and sections",
+  "description": "Proves title and vocabulary language evidence, table-of-contents rejection, explicit dates, numbered-template classification, population subsections, exact Markdown slices, URLs, and source provenance.",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "sourceUrl": "https://example.sharepoint.com/monographs/modern-en.pdf",
+    "pages": [
+      {
+        "metadata": {
+          "fileName": "modern-en.pdf",
+          "pdfVersion": "1.7",
+          "fileSizeBytes": 250000,
+          "pageCount": 4,
+          "pageNumber": 1
+        },
+        "contentType": "text/markdown",
+        "text": "# PRODUCT MONOGRAPH\n\nIncluding Patient Medication Information\n\nSubmission Control No.: 123456\n\nDate of Initial Authorization: January 15, 2004\n\nDate of Revision: March 2, 2024",
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      },
+      {
+        "metadata": {
+          "fileName": "modern-en.pdf",
+          "pdfVersion": "1.7",
+          "fileSizeBytes": 250000,
+          "pageCount": 4,
+          "pageNumber": 2
+        },
+        "contentType": "text/markdown",
+        "text": "# TABLE OF CONTENTS\n\n1 INDICATIONS AND CLINICAL USE ........ 3\n\n1.1 Pediatrics ........................ 3\n\n1.2 Geriatrics ........................ 3\n\n2 CONTRAINDICATIONS ................... 3",
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      },
+      {
+        "metadata": {
+          "fileName": "modern-en.pdf",
+          "pdfVersion": "1.7",
+          "fileSizeBytes": 250000,
+          "pageCount": 4,
+          "pageNumber": 3
+        },
+        "contentType": "text/markdown",
+        "text": "# PART I: HEALTH PROFESSIONAL INFORMATION\n\n# 1 INDICATIONS AND CLINICAL USE\n\nJAMP-DRUG is indicated for adults. See https://example.ca/indication.\n\n## 1.1 Pediatrics\n\nSafety has not been established. See [guidance](https://example.ca/pediatric).\n\n## 1.2 Geriatrics\n\nNo overall differences were observed.\n\n# 2 CONTRAINDICATIONS\n\nJAMP-DRUG is contraindicated in hypersensitivity.",
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      },
+      {
+        "metadata": {
+          "fileName": "modern-en.pdf",
+          "pdfVersion": "1.7",
+          "fileSizeBytes": 250000,
+          "pageCount": 4,
+          "pageNumber": 4
+        },
+        "contentType": "text/markdown",
+        "text": "# 3 SERIOUS WARNINGS AND PRECAUTIONS BOX\n\nClinical warning text.",
+        "hasTextLayer": true,
+        "truncated": false,
+        "warnings": []
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "documentStatus": "parsed",
+      "sourceUrl": "https://example.sharepoint.com/monographs/modern-en.pdf",
+      "pageCount": 4,
+      "pagesReceived": 4,
+      "language": {
+        "value": "en",
+        "status": "found"
+      },
+      "controlNumber": {
+        "value": "123456",
+        "status": "found",
+        "page": 1
+      },
+      "template": {
+        "isModern": true,
+        "family": "modern",
+        "status": "found"
+      },
+      "dates": {
+        "initialAuthorization": {
+          "status": "found",
+          "isoValue": "2004-01-15",
+          "extractionBasis": "explicitLabel"
+        },
+        "revision": {
+          "status": "found",
+          "isoValue": "2024-03-02",
+          "extractionBasis": "explicitLabel"
+        }
+      },
+      "sections": {
+        "indications": {
+          "status": "found",
+          "matchedHeading": "# 1 INDICATIONS AND CLINICAL USE",
+          "startPage": 3,
+          "endPage": 3,
+          "urls": [
+            "https://example.ca/indication",
+            "https://example.ca/pediatric"
+          ]
+        },
+        "pediatrics": {
+          "primary": {
+            "status": "found",
+            "matchedHeading": "## 1.1 Pediatrics",
+            "rawMarkdown": "## 1.1 Pediatrics\n\nSafety has not been established. See [guidance](https://example.ca/pediatric).\n\n",
+            "urls": [
+              "https://example.ca/pediatric"
+            ]
+          },
+          "additional": []
+        },
+        "geriatrics": {
+          "primary": {
+            "status": "found",
+            "matchedHeading": "## 1.2 Geriatrics"
+          },
+          "additional": []
+        },
+        "contraindications": {
+          "status": "found",
+          "matchedHeading": "# 2 CONTRAINDICATIONS",
+          "startPage": 3,
+          "endPage": 3
+        }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

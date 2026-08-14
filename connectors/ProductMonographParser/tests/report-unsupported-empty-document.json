@@ -1,0 +1,47 @@
+{
+  "name": "ParseProductMonograph reports an unsupported image-only document",
+  "description": "A valid page array with no consumable text returns HTTP 200 and an explicit unsupported disposition.",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "sourceUrl": "https://example.sharepoint.com/monographs/image-only.pdf",
+    "pages": [
+      {
+        "metadata": {
+          "pageCount": 1,
+          "pageNumber": 1
+        },
+        "contentType": "text/markdown",
+        "text": "",
+        "ocrStatus": "unsupportedImageFilter",
+        "truncated": false,
+        "warnings": [
+          "JBIG2 image data is unsupported."
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "documentStatus": "unsupported",
+      "language": {
+        "value": "unknown"
+      },
+      "controlNumber": {
+        "status": "notFound"
+      },
+      "sections": {
+        "indications": {
+          "status": "notFound"
+        },
+        "contraindications": {
+          "status": "notFound"
+        }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "ParseProductMonograph propagates low-confidence OCR",
+  "description": "Low-confidence OCR text is suppressed, every spanning section is incomplete, and the document requires review.",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": {
+          "pageCount": 3,
+          "pageNumber": 1
+        },
+        "contentType": "text/markdown",
+        "text": "PRODUCT MONOGRAPH\n\nControl No.: 444444\n\nDate of Initial Authorization: April 5, 2020\n\n# 1 INDICATIONS AND CLINICAL USE\n\nThe indication starts here.",
+        "truncated": false,
+        "warnings": []
+      },
+      {
+        "metadata": {
+          "pageCount": 3,
+          "pageNumber": 2
+        },
+        "contentType": "text/markdown",
+        "text": "This untrusted OCR text must not be consumed.",
+        "ocrStatus": "lowConfidence",
+        "truncated": false,
+        "warnings": [
+          "OCR confidence was below the acceptance threshold."
+        ]
+      },
+      {
+        "metadata": {
+          "pageCount": 3,
+          "pageNumber": 3
+        },
+        "contentType": "text/markdown",
+        "text": "# 2 CONTRAINDICATIONS\n\nHypersensitivity.\n\n# 3 WARNINGS AND PRECAUTIONS\n\nWarning text.",
+        "truncated": false,
+        "warnings": []
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "documentStatus": "needsReview",
+      "language": {
+        "value": "en",
+        "status": "found"
+      },
+      "sections": {
+        "indications": {
+          "status": "incomplete",
+          "startPage": 1,
+          "endPage": 2,
+          "pageSlices": [
+            {
+              "pageNumber": 1
+            },
+            {
+              "pageNumber": 2,
+              "markdown": ""
+            }
+          ]
+        }
+      }
+    },
+    "bodyTextContains": "Text was suppressed because the upstream OCR status was lowConfidence.",
+    "outboundRequestCount": 0
+  }
+}

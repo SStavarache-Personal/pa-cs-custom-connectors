@@ -1,0 +1,46 @@
+{
+  "generatedUtc": "2026-08-14T07:09:08Z",
+  "sampleSize": 13,
+  "terminalStatusCounts": {
+    "completed": 13
+  },
+  "completedOrderedDocuments": 13,
+  "maximumInputBytes": 43716854,
+  "maximumInvocationMilliseconds": 1046,
+  "over32MiB": [
+    {
+      "name": "00071739.pdf",
+      "lengthBytes": 43354406,
+      "terminalStatus": "completed"
+    },
+    {
+      "name": "00073995.PDF",
+      "lengthBytes": 43716854,
+      "terminalStatus": "completed"
+    },
+    {
+      "name": "00071740.PDF",
+      "lengthBytes": 43354406,
+      "terminalStatus": "completed"
+    },
+    {
+      "name": "00073996.PDF",
+      "lengthBytes": 43716854,
+      "terminalStatus": "completed"
+    }
+  ],
+  "scan00003161": {
+    "terminalStatus": "completed",
+    "sourcePageCount": 22,
+    "pageStatusCounts": {
+      "lowConfidence": 22
+    },
+    "requiredAnchors": {
+      "MONOGRAPHIE DE PRODUIT": false,
+      "OXIZOLE": false,
+      "15 janvier 2004": false,
+      "089170": false
+    }
+  },
+  "unhandledExceptions": 0
+}

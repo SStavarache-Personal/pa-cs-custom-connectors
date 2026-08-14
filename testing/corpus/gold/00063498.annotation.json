@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "documentId": "00063498",
+  "language": "fr",
+  "templateFamily": "modern",
+  "controlNumber": "250741",
+  "initialAuthorization": {
+    "isoValue": "1982-12-31",
+    "basis": "explicitLabel"
+  },
+  "revision": {
+    "isoValue": "2021-10-13",
+    "basis": "explicitLabel"
+  },
+  "sections": {
+    "indications": {
+      "startPage": 4,
+      "sha256Utf8RawMarkdown": "7b55162f91c095475c67cec97eaeb686e7d531531aea9b7adccb29956f90438c"
+    },
+    "pediatricsPrimary": {
+      "matchedHeading": "### 1.1 Enfants",
+      "startPage": 4,
+      "sha256Utf8RawMarkdown": "e35339b64952abb0f57a22227b18e03982d52df5a4a0f1cfdb36a9d3d3724a53"
+    },
+    "geriatricsPrimary": {
+      "matchedHeading": "### 1.2 Personnes âgées",
+      "startPage": 4,
+      "sha256Utf8RawMarkdown": "d1dcba8d3f06b70953cde793558af71f123c8ec4560e00e9a560f3083263836c"
+    },
+    "contraindications": {
+      "matchedHeading": "### 2 CONTRE-INDICATIONS",
+      "startPage": 4,
+      "sha256Utf8RawMarkdown": "3c6b12b840367ee2fab45002ff9abd949284ae321513a8a996e81550c21bf9d5"
+    }
+  },
+  "annotationStatus": "verifiedFromSavedPageFixture"
+}

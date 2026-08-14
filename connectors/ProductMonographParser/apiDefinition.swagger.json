@@ -1,0 +1,592 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Product Monograph Parser",
+    "description": "Deterministically parses Health Canada product-monograph metadata and clinical sections from page-chunk Markdown without outbound network calls.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Custom Connector"
+    }
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/monographs/parse": {
+      "post": {
+        "operationId": "ParseProductMonograph",
+        "summary": "Parse a product monograph",
+        "description": "Parses English or French product-monograph Markdown page chunks and fails closed when evidence is incomplete, conflicting, or ambiguous.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "description": "Document provenance and ordered page chunks from a PDF text or OCR connector.",
+            "schema": {
+              "$ref": "#/definitions/ParseProductMonographRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The request was valid. Every field reports whether it was accepted, absent, incomplete, or ambiguous.",
+            "schema": {
+              "$ref": "#/definitions/ParseProductMonographResponse"
+            }
+          },
+          "400": {
+            "description": "The request JSON or page-array contract was malformed.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ParseProductMonographRequest": {
+      "type": "object",
+      "required": [
+        "pages"
+      ],
+      "properties": {
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 4096,
+          "description": "Optional HTTP or HTTPS document provenance retained once at document level.",
+          "x-ms-summary": "Source URL",
+          "x-ms-visibility": "advanced"
+        },
+        "pages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "description": "Strictly ascending, unique Markdown page chunks.",
+          "x-ms-summary": "Markdown Pages",
+          "items": {
+            "$ref": "#/definitions/MonographPageChunk"
+          }
+        }
+      }
+    },
+    "MonographPageChunk": {
+      "type": "object",
+      "required": [
+        "contentType",
+        "text"
+      ],
+      "properties": {
+        "metadata": {
+          "$ref": "#/definitions/PageMetadata"
+        },
+        "pageNumber": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "description": "Fallback 1-based page number when metadata.pageNumber is unavailable."
+        },
+        "pageCount": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1,
+          "description": "Fallback source page count when metadata.pageCount is unavailable."
+        },
+        "contentType": {
+          "type": "string",
+          "enum": [
+            "text/markdown"
+          ],
+          "description": "Page content type."
+        },
+        "text": {
+          "type": "string",
+          "description": "Untouched page Markdown, or an empty string when no text is consumable."
+        },
+        "hasTextLayer": {
+          "type": "boolean",
+          "description": "Whether the source page contained an extractable PDF text layer."
+        },
+        "truncated": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether upstream output limits truncated this page or document."
+        },
+        "ocrStatus": {
+          "type": "string",
+          "description": "Optional OCR disposition. Low-confidence and unsupported values are never trusted."
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Upstream extraction warnings."
+        }
+      },
+      "additionalProperties": true
+    },
+    "PageMetadata": {
+      "type": "object",
+      "properties": {
+        "fileName": {
+          "type": "string"
+        },
+        "pdfVersion": {
+          "type": "string"
+        },
+        "fileSizeBytes": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "title": {
+          "type": "string"
+        },
+        "pageCount": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1
+        },
+        "pageNumber": {
+          "type": "integer",
+          "format": "int32",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "ParseProductMonographResponse": {
+      "type": "object",
+      "properties": {
+        "documentStatus": {
+          "type": "string",
+          "enum": [
+            "parsed",
+            "partial",
+            "needsReview",
+            "unsupported"
+          ],
+          "description": "Whole-document deterministic disposition."
+        },
+        "sourceUrl": {
+          "type": "string",
+          "x-nullable": true,
+          "description": "Request provenance, never repeated in section URL arrays."
+        },
+        "pageCount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "pagesReceived": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "language": {
+          "$ref": "#/definitions/LanguageResult"
+        },
+        "controlNumber": {
+          "$ref": "#/definitions/ControlNumberResult"
+        },
+        "template": {
+          "$ref": "#/definitions/TemplateResult"
+        },
+        "dates": {
+          "$ref": "#/definitions/DateCollection"
+        },
+        "sections": {
+          "$ref": "#/definitions/MonographSections"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LanguageResult": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "enum": [
+            "en",
+            "fr",
+            "unknown"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "found",
+            "unknown",
+            "conflicting"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "scores": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/LanguageEvidence"
+          }
+        }
+      }
+    },
+    "LanguageEvidence": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string"
+        },
+        "strategy": {
+          "type": "string"
+        },
+        "phrase": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "weight": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "ControlNumberResult": {
+      "type": "object",
+      "properties": {
+        "value": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "found",
+            "notFound",
+            "ambiguous"
+          ]
+        },
+        "matchedLabel": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "rawEvidence": {
+          "description": "Raw source line or lines supporting the result; a string when accepted and an array when conflicting."
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "TemplateResult": {
+      "type": "object",
+      "properties": {
+        "isModern": {
+          "type": "boolean",
+          "x-nullable": true
+        },
+        "family": {
+          "type": "string",
+          "enum": [
+            "modern",
+            "legacy",
+            "unknown"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "found",
+            "unknown"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HeadingEvidence"
+          }
+        }
+      }
+    },
+    "DateCollection": {
+      "type": "object",
+      "properties": {
+        "initialAuthorization": {
+          "$ref": "#/definitions/DateResult"
+        },
+        "revision": {
+          "$ref": "#/definitions/DateResult"
+        },
+        "observedDates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ObservedDate"
+          }
+        }
+      }
+    },
+    "DateResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "found",
+            "notFound",
+            "ambiguous"
+          ]
+        },
+        "isoValue": {
+          "type": "string",
+          "format": "date",
+          "x-nullable": true
+        },
+        "rawText": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "matchedLabel": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "extractionBasis": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ObservedDate"
+          }
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "ObservedDate": {
+      "type": "object",
+      "properties": {
+        "isoValue": {
+          "type": "string",
+          "format": "date"
+        },
+        "rawText": {
+          "type": "string"
+        },
+        "matchedLabel": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "extractionBasis": {
+          "type": "string"
+        },
+        "roleHint": {
+          "type": "string",
+          "x-nullable": true
+        }
+      }
+    },
+    "MonographSections": {
+      "type": "object",
+      "properties": {
+        "indications": {
+          "$ref": "#/definitions/SectionResult"
+        },
+        "pediatrics": {
+          "$ref": "#/definitions/PopulationSections"
+        },
+        "geriatrics": {
+          "$ref": "#/definitions/PopulationSections"
+        },
+        "contraindications": {
+          "$ref": "#/definitions/SectionResult"
+        }
+      }
+    },
+    "PopulationSections": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "$ref": "#/definitions/SectionResult"
+        },
+        "additional": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SectionResult"
+          }
+        }
+      }
+    },
+    "SectionResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "found",
+            "notFound",
+            "ambiguous",
+            "incomplete"
+          ]
+        },
+        "matchedHeading": {
+          "type": "string",
+          "x-nullable": true
+        },
+        "startPage": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "endPage": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "rawMarkdown": {
+          "type": "string"
+        },
+        "pageSlices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PageSlice"
+          }
+        },
+        "urls": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "confidence": {
+          "type": "number",
+          "format": "double"
+        },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/HeadingEvidence"
+          }
+        }
+      }
+    },
+    "PageSlice": {
+      "type": "object",
+      "properties": {
+        "pageNumber": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "startOffset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "endOffset": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "markdown": {
+          "type": "string"
+        }
+      }
+    },
+    "HeadingEvidence": {
+      "type": "object",
+      "properties": {
+        "heading": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "number": {
+          "type": "string",
+          "x-nullable": true
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/ErrorDetail"
+        }
+      }
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

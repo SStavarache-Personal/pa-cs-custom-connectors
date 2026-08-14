@@ -1,0 +1,124 @@
+{
+  "generatedUtc": "2026-08-14T06:51:45Z",
+  "sharePointSnapshotUtc": "2026-08-14T06:51:25Z",
+  "semanticSnapshotUtc": "2026-08-14T06:51:37Z",
+  "fileCount": 18382,
+  "languageLabelStatusCounts": {
+    "matched": 17634,
+    "unlabeled": 748
+  },
+  "expectedLanguageCounts": {
+    "en": 10978,
+    "fr": 6656
+  },
+  "over20MiB": 12,
+  "over32MiB": 4,
+  "over64MiB": 0,
+  "maximumLengthBytes": 43716854,
+  "largestFiles": [
+    {
+      "name": "00073995.PDF",
+      "lengthBytes": 43716854,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00073996.PDF",
+      "lengthBytes": 43716854,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00071739.pdf",
+      "lengthBytes": 43354406,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00071740.PDF",
+      "lengthBytes": 43354406,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00059313.pdf",
+      "lengthBytes": 33030434,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00026669.PDF",
+      "lengthBytes": 30533456,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00066240.pdf",
+      "lengthBytes": 28410269,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00080829.PDF",
+      "lengthBytes": 27646741,
+      "expectedLanguage": null
+    },
+    {
+      "name": "00083252.PDF",
+      "lengthBytes": 23185741,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00056075.PDF",
+      "lengthBytes": 22809769,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00056661.PDF",
+      "lengthBytes": 22492930,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00055751.PDF",
+      "lengthBytes": 21177929,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00056456.PDF",
+      "lengthBytes": 20339595,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00058142.PDF",
+      "lengthBytes": 20212882,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00059028.PDF",
+      "lengthBytes": 19155421,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00059348.PDF",
+      "lengthBytes": 18567053,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00020274.PDF",
+      "lengthBytes": 18527293,
+      "expectedLanguage": "fr"
+    },
+    {
+      "name": "00056657.PDF",
+      "lengthBytes": 18520981,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00059063.PDF",
+      "lengthBytes": 18449847,
+      "expectedLanguage": "en"
+    },
+    {
+      "name": "00059019.PDF",
+      "lengthBytes": 17792279,
+      "expectedLanguage": "fr"
+    }
+  ],
+  "sourceHashes": {
+    "sharepointSha256": "ec32d61526b408a0a6cf5023001874cba9f3f9f3019d0d9227e60206e3b3e16b",
+    "semanticSha256": "0d08409321dc80967c58aa9eb325bd163282e7c02f4a685fe20356a26c6fc2d2"
+  }
+}
