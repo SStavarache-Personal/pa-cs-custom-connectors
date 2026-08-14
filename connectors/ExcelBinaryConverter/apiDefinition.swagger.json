@@ -1,0 +1,173 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Excel Binary Converter",
+    "description": "Converts BIFF8 .xls and BIFF12 .xlsb workbooks to value-only .xlsx files without an external conversion service.",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/convert-to-xlsx": {
+      "post": {
+        "summary": "Convert an Excel binary workbook",
+        "description": "Converts a base64-encoded .xls or .xlsb workbook into a base64-encoded .xlsx workbook without making an outbound request.",
+        "operationId": "ConvertToXlsx",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/ConversionRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The converted .xlsx file.",
+            "schema": {
+              "$ref": "#/definitions/ConversionResponse"
+            }
+          },
+          "400": {
+            "description": "The request or source format is invalid.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "408": {
+            "description": "The conversion reached its runtime safety limit.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "413": {
+            "description": "The source or generated workbook exceeds a connector limit.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          },
+          "422": {
+            "description": "The workbook is invalid, encrypted, or uses an unsupported feature.",
+            "schema": {
+              "$ref": "#/definitions/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ConversionRequest": {
+      "type": "object",
+      "required": [
+        "fileContent"
+      ],
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Original file name. The response uses the same base name with an .xlsx extension.",
+          "x-ms-summary": "File name",
+          "example": "legacy-report.xlsb"
+        },
+        "fileContent": {
+          "type": "string",
+          "format": "byte",
+          "description": "Base64-encoded content of a BIFF8 .xls or BIFF12 .xlsb file.",
+          "x-ms-summary": "File content"
+        }
+      }
+    },
+    "ConversionResponse": {
+      "type": "object",
+      "required": [
+        "fileName",
+        "contentType",
+        "fileContent",
+        "sourceFormat",
+        "sheetCount",
+        "cellCount",
+        "elapsedMilliseconds"
+      ],
+      "properties": {
+        "fileName": {
+          "type": "string",
+          "description": "Suggested .xlsx file name."
+        },
+        "contentType": {
+          "type": "string",
+          "description": "MIME type of the generated workbook."
+        },
+        "fileContent": {
+          "type": "string",
+          "format": "byte",
+          "description": "Base64-encoded .xlsx file content."
+        },
+        "sourceFormat": {
+          "type": "string",
+          "enum": [
+            "xls",
+            "xlsb"
+          ],
+          "description": "Detected input format."
+        },
+        "sheetCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of worksheets written."
+        },
+        "cellCount": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Number of populated or explicitly blank cells written."
+        },
+        "elapsedMilliseconds": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Conversion duration reported by the custom code."
+        }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": [
+        "error"
+      ],
+      "properties": {
+        "error": {
+          "$ref": "#/definitions/ErrorDetail"
+        }
+      }
+    },
+    "ErrorDetail": {
+      "type": "object",
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}
