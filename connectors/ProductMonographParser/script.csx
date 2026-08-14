@@ -939,8 +939,9 @@ public class Script : ScriptBase
             }
 
             string prefix = line.Raw.Substring(0, match.Index).Trim();
-            string labelKind = GetDateLabelKind(NormalizeForDetection(prefix));
-            string label = string.IsNullOrWhiteSpace(prefix) ? null : prefix.Trim(' ', ':', '-', '–', '—');
+            string labelKind;
+            string label;
+            FindNearestDateLabel(prefix, out labelKind, out label);
 
             if (labelKind == null)
             {
@@ -968,6 +969,28 @@ public class Script : ScriptBase
                 MatchIndex = match.Index
             });
         }
+    }
+
+    private static void FindNearestDateLabel(string prefix, out string labelKind, out string label)
+    {
+        labelKind = null;
+        label = null;
+        if (string.IsNullOrWhiteSpace(prefix)) return;
+
+        string[] segments = Regex.Split(prefix, @"(?:<br\s*/?>|\r?\n|\|)", RegexOptions.IgnoreCase);
+        for (int index = segments.Length - 1; index >= 0; index--)
+        {
+            string segment = segments[index].Trim(' ', ':', '-', '–', '—');
+            if (string.IsNullOrWhiteSpace(segment)) continue;
+            string kind = GetDateLabelKind(NormalizeForDetection(segment));
+            if (kind == null) continue;
+            labelKind = kind;
+            label = segment;
+            return;
+        }
+
+        labelKind = GetDateLabelKind(NormalizeForDetection(prefix));
+        label = labelKind == null ? null : prefix.Trim(' ', ':', '-', '–', '—');
     }
 
     private static JObject BuildPopulationGroup(
@@ -1273,8 +1296,11 @@ public class Script : ScriptBase
     {
         if (string.IsNullOrWhiteSpace(normalized)) return false;
         return Regex.IsMatch(normalized, @"\b(?:submission\s+|presentation\s+)?control\s+(?:no|number)\b") ||
+            Regex.IsMatch(normalized, @"^control\s+\d{5,9}$") ||
             Regex.IsMatch(normalized, @"\b(?:n(?:\s+o)?|no|numero|o\s+n)\s+de\s+controle\b") ||
-            normalized.Contains("controle de la presentation");
+            normalized.Contains("controle de la presentation") ||
+            normalized.Contains("numero de la demande") ||
+            normalized.Contains("numerodecontrole");
     }
 
     private static string GetDateLabelKind(string normalized)

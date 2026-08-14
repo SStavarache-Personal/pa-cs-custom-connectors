@@ -1,0 +1,23 @@
+{
+  "name": "Parser recognizes an English Control hash label",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": { "fileName": "control-hash.pdf", "pageCount": 1, "pageNumber": 1 },
+        "contentType": "text/markdown",
+        "text": "# PRODUCT MONOGRAPH\n\n### **Control # :**094306\n\nDate of Initial Authorization: October 26, 2004\n\n# INDICATIONS AND CLINICAL USE\n\nBody.\n\n# CONTRAINDICATIONS\n\nBody.\n\n# WARNINGS AND PRECAUTIONS\n\nBody."
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "controlNumber": { "status": "found", "value": "094306", "page": 1 }
+    },
+    "outboundRequestCount": 0
+  }
+}

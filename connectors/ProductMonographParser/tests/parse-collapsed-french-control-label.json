@@ -1,0 +1,23 @@
+{
+  "name": "Parser recognizes a whitespace-collapsed French control label",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": { "fileName": "collapsed-control.pdf", "pageCount": 1, "pageNumber": 1 },
+        "contentType": "text/markdown",
+        "text": "# MONOGRAPHIE DE PRODUIT\n\nNumérodecontrôle: 301885\n\nDate de l’homologation initiale : 1 janvier 2025\n\n# 1 INDICATIONS\n\nTexte.\n\n# 2 CONTRE-INDICATIONS\n\nTexte.\n\n# 3 MISES EN GARDE ET PRÉCAUTIONS\n\nTexte."
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "controlNumber": { "status": "found", "value": "301885", "page": 1 }
+    },
+    "outboundRequestCount": 0
+  }
+}
