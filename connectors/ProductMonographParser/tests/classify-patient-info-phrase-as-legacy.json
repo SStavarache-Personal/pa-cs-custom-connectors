@@ -1,0 +1,28 @@
+{
+  "name": "Patient information wording alone does not imply a modern template",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": { "fileName": "legacy-patient-info.pdf", "pageCount": 2, "pageNumber": 1 },
+        "contentType": "text/markdown",
+        "text": "# PRODUCT MONOGRAPH INCLUDING PATIENT MEDICATION INFORMATION\n\nControl No. 222222\nDate of Initial Authorization: January 1, 2001"
+      },
+      {
+        "metadata": { "fileName": "legacy-patient-info.pdf", "pageCount": 2, "pageNumber": 2 },
+        "contentType": "text/markdown",
+        "text": "# INDICATIONS AND CLINICAL USE\n\nClinical body.\n\n# CONTRAINDICATIONS\n\nContraindication body.\n\n# WARNINGS AND PRECAUTIONS\n\nWarning body."
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "template": { "isModern": false, "family": "legacy", "status": "found" }
+    },
+    "outboundRequestCount": 0
+  }
+}

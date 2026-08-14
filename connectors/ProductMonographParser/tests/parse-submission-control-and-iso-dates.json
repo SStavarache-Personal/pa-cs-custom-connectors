@@ -1,0 +1,34 @@
+{
+  "name": "Parser recognizes submission control wording and ISO dates",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "pages": [
+      {
+        "metadata": { "fileName": "en-variants.pdf", "pageCount": 2, "pageNumber": 1 },
+        "contentType": "text/markdown",
+        "text": "# PRODUCT MONOGRAPH\n\nSubmission Control Number: 7654321\n\nDate of Initial Authorization: 2005-01-02\nDate of Revision: 2024/12/31"
+      },
+      {
+        "metadata": { "fileName": "en-variants.pdf", "pageCount": 2, "pageNumber": 2 },
+        "contentType": "text/markdown",
+        "text": "# 1 INDICATIONS\n\nClinical use.\n\n# 2 CONTRAINDICATIONS\n\nContraindication body.\n\n# 3 SERIOUS WARNINGS AND PRECAUTIONS BOX\n\nBody."
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "documentStatus": "parsed",
+      "language": { "value": "en" },
+      "controlNumber": { "value": "7654321", "status": "found" },
+      "dates": {
+        "initialAuthorization": { "isoValue": "2005-01-02", "extractionBasis": "explicitLabel" },
+        "revision": { "isoValue": "2024-12-31", "extractionBasis": "explicitLabel" }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}

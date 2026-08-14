@@ -1,0 +1,57 @@
+{
+  "name": "Parser ignores table of contents entries and preserves multi-page section links",
+  "includeInAutomatedRun": true,
+  "operationId": "ParseProductMonograph",
+  "method": "POST",
+  "relativePath": "/monographs/parse",
+  "requestBody": {
+    "sourceUrl": "https://pdf.hres.ca/dpd_pm/toc-sample.pdf",
+    "pages": [
+      {
+        "metadata": { "fileName": "toc-sample.pdf", "pageCount": 4, "pageNumber": 1 },
+        "contentType": "text/markdown",
+        "text": "# PRODUCT MONOGRAPH\n\nControl No. 555555\nDate of Initial Authorization: January 1, 2010\n\n## TABLE OF CONTENTS\n1 INDICATIONS ........ 2\n2 CONTRAINDICATIONS ........ 3\n3 SERIOUS WARNINGS AND PRECAUTIONS BOX ........ 4"
+      },
+      {
+        "metadata": { "fileName": "toc-sample.pdf", "pageCount": 4, "pageNumber": 2 },
+        "contentType": "text/markdown",
+        "text": "# 1 INDICATIONS\n\nFirst paragraph with [clinical source](https://example.org/clinical)."
+      },
+      {
+        "metadata": { "fileName": "toc-sample.pdf", "pageCount": 4, "pageNumber": 3 },
+        "contentType": "text/markdown",
+        "text": "Continuation at https://example.org/clinical. Another source: https://example.org/second.\n\n# 2 CONTRAINDICATIONS\n\nContraindication body."
+      },
+      {
+        "metadata": { "fileName": "toc-sample.pdf", "pageCount": 4, "pageNumber": 4 },
+        "contentType": "text/markdown",
+        "text": "# 3 SERIOUS WARNINGS AND PRECAUTIONS BOX\n\nWarning body."
+      }
+    ]
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "sourceUrl": "https://pdf.hres.ca/dpd_pm/toc-sample.pdf",
+      "template": { "family": "modern", "isModern": true },
+      "sections": {
+        "indications": {
+          "status": "found",
+          "matchedHeading": "# 1 INDICATIONS",
+          "startPage": 2,
+          "endPage": 3,
+          "pageSlices": [
+            { "pageNumber": 2 },
+            { "pageNumber": 3 }
+          ],
+          "urls": [
+            "https://example.org/clinical",
+            "https://example.org/second"
+          ]
+        },
+        "contraindications": { "status": "found", "matchedHeading": "# 2 CONTRAINDICATIONS", "startPage": 3 }
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}
