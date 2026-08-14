@@ -262,7 +262,7 @@ public class Script : ScriptBase
 
     private HttpResponseMessage CreateJsonResponse(HttpStatusCode statusCode, JToken body)
     {
-        return new HttpResponseMessage(statusCode) { Content = CreateJsonContent(body.ToString(Formatting.None)) };
+        return new HttpResponseMessage(statusCode) { Content = CreateJsonContent(body.ToString(Newtonsoft.Json.Formatting.None)) };
     }
 
     private HttpResponseMessage CreateErrorResponse(HttpStatusCode statusCode, string code, string message)
