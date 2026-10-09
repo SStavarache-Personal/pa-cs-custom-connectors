@@ -128,6 +128,73 @@ public sealed class HtmlSlideConverterTests
     }
 
     [Theory]
+    [InlineData("data:image/svg+xml,")]
+    [InlineData("data:image/svg+xml;utf8,")]
+    [InlineData("data:image/svg+xml;charset=utf-8,")]
+    [InlineData("DATA:IMAGE/SVG+XML;UTF8,")]
+    public async Task Url_encoded_svg_preserves_utf8_plus_percent_and_local_references(string prefix)
+    {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>" +
+            "<defs><linearGradient id='g'><stop offset='0' stop-color='#123456'/></linearGradient></defs>" +
+            "<rect width='100' height='100' fill='url(#g)'/><text>Café + 50% 東京 🚀 %3C</text></svg>";
+        // EncodeUrl-style URI encoding; also exercise literal '+' and lowercase hex.
+        string encoded = Uri.EscapeDataString(svg).Replace("%2B", "+").Replace("%3C", "%3c");
+        string image = "<img src='" + prefix + encoded + "' style='" + Box + "'>";
+        string base64Image = "<img src='data:image/svg+xml;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "' style='" + Box + "'>";
+        JObject body = Success(await Invoke(Slide(image) + Slide(base64Image)));
+        byte[] bytes = Bytes(body); ValidatePackage(bytes);
+        using var zip = new ZipArchive(new MemoryStream(bytes));
+        ZipArchiveEntry asset = Assert.Single(zip.Entries, e => e.FullName.EndsWith(".svg"));
+        using Stream stream = asset.Open();
+        XElement root = XElement.Load(stream);
+        XNamespace svgNs = "http://www.w3.org/2000/svg";
+        Assert.Equal("Café + 50% 東京 🚀 %3C", root.Element(svgNs + "text")!.Value);
+        Assert.Equal("url(#g)", (string)root.Element(svgNs + "rect")!.Attribute("fill")!);
+        Assert.Equal(1, (int)body["slides"]![0]!["imageCount"]!);
+        XNamespace officeSvg = "http://schemas.microsoft.com/office/drawing/2016/SVG/main";
+        Assert.Single(Xml(zip, "ppt/slides/slide1.xml").Descendants(officeSvg + "svgBlip"));
+    }
+
+    [Fact]
+    public async Task Validation_accepts_power_apps_url_encoded_svg_without_packaging()
+    {
+        string svg = Uri.EscapeDataString("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#0070c0'/></svg>");
+        JObject body = Success(await Invoke(Slide("<img src='data:image/svg+xml;utf8," + svg + "' style='" + Box + "'>"), operation: "ValidateHtmlSlides"));
+        Assert.True((bool)body["valid"]!);
+        Assert.Null(body["fileContent"]);
+        Assert.Equal(1, (int)body["slides"]![0]!["imageCount"]!);
+    }
+
+    [Theory]
+    [InlineData("%", "INVALID_IMAGE")]
+    [InlineData("%3", "INVALID_IMAGE")]
+    [InlineData("%GG", "INVALID_IMAGE")]
+    [InlineData("%FF", "INVALID_IMAGE")]
+    [InlineData("%C3%28", "INVALID_IMAGE")]
+    [InlineData("%253Csvg%253E%253C/svg%253E", "INVALID_SVG")]
+    public async Task Rejects_malformed_url_encoded_svg(string payload, string error)
+    {
+        ConnectorInvocationResult result = await Invoke(Slide("<img src='data:image/svg+xml;utf8," + payload + "' style='" + Box + "'>"));
+        Assert.Equal(422, result.StatusCode);
+        Assert.Equal(error, (string)JObject.Parse(result.BodyText)["error"]!["code"]!);
+        Assert.Empty(result.OutboundRequests);
+    }
+
+    [Theory]
+    [InlineData("<svg><script>alert(1)</script></svg>", "ACTIVE_CONTENT")]
+    [InlineData("<svg onload='alert(1)'/>", "ACTIVE_CONTENT")]
+    [InlineData("<svg><image href='https://example.com/a.png'/></svg>", "EXTERNAL_ASSET")]
+    [InlineData("<svg><rect fill='url(https://example.com/a.svg)'/></svg>", "EXTERNAL_ASSET")]
+    public async Task Url_encoded_svg_passes_through_existing_content_validation(string svg, string error)
+    {
+        string image = "<img src='data:image/svg+xml;utf8," + Uri.EscapeDataString(svg) + "' style='" + Box + "'>";
+        ConnectorInvocationResult result = await Invoke(Slide(image), strict: false);
+        Assert.Equal(422, result.StatusCode);
+        Assert.Equal(error, (string)JObject.Parse(result.BodyText)["error"]!["code"]!);
+        Assert.Empty(result.OutboundRequests);
+    }
+
+    [Theory]
     [InlineData("<p style='left:1250px;top:40px;width:100px;height:100px'>Text</p>", "OUT_OF_BOUNDS")]
     [InlineData("<p>Text</p>", "MISSING_GEOMETRY")]
     [InlineData("<div style='left:0;top:0;width:100px;height:100px;display:flex'>Text</div>", "UNSUPPORTED_LAYOUT")]

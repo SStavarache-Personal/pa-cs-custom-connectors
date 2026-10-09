@@ -113,13 +113,27 @@ Example:
 ### Images and chart graphics
 
 - Use `img src="data:image/png;base64,..."` or `data:image/jpeg;base64,...` with explicit geometry.
-- Static SVG can be supplied inline, or through `img src="data:image/svg+xml;base64,..."`. SVG is embedded as a vector graphic using the Office SVG extension.
+- Static SVG can be supplied inline, through `img src="data:image/svg+xml;base64,..."`, or as a UTF-8 URL-encoded SVG data URL. Accepted URL-encoded prefixes are `data:image/svg+xml,`, `data:image/svg+xml;utf8,`, and `data:image/svg+xml;charset=utf-8,` (case insensitive). SVG is embedded as a vector graphic using the Office SVG extension.
+- URL-encoded payloads are percent-decoded once as UTF-8. Literal `+` stays `+`; malformed percent escapes and invalid UTF-8 are rejected. Base64 remains required for PNG/JPEG.
 - Supply a `viewBox` and use self-contained SVG presentation attributes/inline styling. SVG must be well-formed XML. Local `#fragment` references are accepted; external references, scripts, animations, SVG stylesheet blocks, and `foreignObject` are rejected.
 - For inline SVG, root `style` defines slide geometry using the same supported CSS profile. SVG children keep their own presentation attributes. Include the SVG namespace where possible.
 - A chart graphic has no editable Excel dataset or native chart series. It can be moved/resized as a picture. Tables and text remain native editable objects.
 - Images stretch into their declared box. Preserve the source aspect ratio in the supplied width/height.
 - Optional `data-fallback-src="data:image/png;base64,..."` on SVG/`img` supplies a raster preview for older/non-SVG Office clients. Without it, the converter emits `SVG_FALLBACK_MISSING` and uses a transparent raster fallback. A compatible Office client renders the embedded SVG; older clients may show an empty picture. The connector does not rasterize SVG.
-- No external image/font requests are made. Base64 assets make the HTML self-contained.
+- No external image/font requests are made. Embedded data URLs make the HTML self-contained.
+
+In Power Apps, construct the SVG source with Power Fx `EncodeUrl` applied to the SVG markup only:
+
+```powerfx
+With(
+    { svg: "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='#0070c0'/></svg>" },
+    "<section class='slide'><img style='left:40px;top:40px;width:300px;height:300px' src='data:image/svg+xml;utf8," &
+    EncodeUrl(svg) &
+    "'></section>"
+)
+```
+
+Pass the resulting completed HTML string in the connector's `html` input. Encode the SVG payload once; leave the data URL prefix and surrounding HTML unencoded. The same SVG validation and raster fallback rules apply to every SVG input format. See Microsoft's [Power Fx EncodeUrl reference](https://learn.microsoft.com/en-us/power-platform/power-fx/reference/function-encode-decode).
 
 ## CSS support
 
@@ -166,7 +180,7 @@ Example failure:
 | Slides | 100 |
 | Positioned objects | 10,000 total |
 | Table grid | 64 columns, 256 rows per table; 20,000 grid cells total |
-| Embedded media | 20 MiB after base64 decoding, deduplicated by SHA-256 |
+| Embedded media | 20 MiB after decoding, deduplicated by SHA-256 |
 | Generated `.pptx` | 50 MiB |
 | HTML tokens / nesting | 30,000 / 64 levels |
 | SVG elements / nesting | 20,000 / 64 levels per SVG |

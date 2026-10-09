@@ -877,9 +877,12 @@ public class Script : ScriptBase
 
     private Asset DataImage(string source, string location)
     {
-        if (source == null) throw new Problem("INVALID_IMAGE", "Images need an embedded base64 data URL.", 422, location);
+        if (source == null) throw new Problem("INVALID_IMAGE", "Images need an embedded data URL.", 422, location);
+        Match svgUrl = Regex.Match(source, @"^data:image/svg\+xml(?:;utf8|;charset=utf-8)?,([\s\S]+)$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
+        if (svgUrl.Success)
+            return AddAsset(ValidateSvg(DecodeSvgUrl(svgUrl.Groups[1].Value, location), location), "svg");
         Match match = Regex.Match(source, @"^data:image/(png|jpeg|svg\+xml);base64,([\s\S]+)$", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(1));
-        if (!match.Success) throw new Problem("EXTERNAL_ASSET", "Only base64 data:image/png, image/jpeg and image/svg+xml sources are supported. External URLs are not fetched.", 422, location);
+        if (!match.Success) throw new Problem("EXTERNAL_ASSET", "Only embedded PNG/JPEG base64 and SVG base64 or UTF-8 URL-encoded data URLs are supported. External URLs are not fetched.", 422, location);
         byte[] bytes;
         if (match.Groups[2].Length > MaxMediaBytes * 2) throw new Problem("LIMIT_EXCEEDED", "Image data URL is too large.", 413, location);
         try { bytes = Convert.FromBase64String(match.Groups[2].Value); }
@@ -894,6 +897,41 @@ public class Script : ScriptBase
         else if (bytes.Length < 4 || bytes[0] != 255 || bytes[1] != 216 || bytes[bytes.Length - 2] != 255 || bytes[bytes.Length - 1] != 217)
             throw new Problem("INVALID_IMAGE", "Invalid JPEG header/trailer.", 422, location);
         return AddAsset(bytes, type == "jpeg" ? "jpg" : "png");
+    }
+
+    private string DecodeSvgUrl(string encoded, string location)
+    {
+        if (encoded.Length > MaxMediaBytes * 3) throw new Problem("LIMIT_EXCEEDED", "SVG data URL is too large.", 413, location);
+        // Decode the data payload once as UTF-8 URI bytes, not form data:
+        // a literal '+' must stay '+', and %25 must not trigger a second decode.
+        var utf8 = new UTF8Encoding(false, true);
+        try
+        {
+            byte[] input = utf8.GetBytes(encoded);
+            byte[] decoded = new byte[input.Length];
+            int count = 0;
+            for (int i = 0; i < input.Length; i++)
+            {
+                if ((i & 4095) == 0) CheckBudget();
+                if (input[i] != (byte)'%') { decoded[count++] = input[i]; continue; }
+                int high = i + 1 < input.Length ? HexDigit(input[i + 1]) : -1;
+                int low = i + 2 < input.Length ? HexDigit(input[i + 2]) : -1;
+                if (high < 0 || low < 0)
+                    throw new Problem("INVALID_IMAGE", "SVG data URL contains an invalid percent escape.", 422, location);
+                decoded[count++] = (byte)((high << 4) | low); i += 2;
+            }
+            return utf8.GetString(decoded, 0, count);
+        }
+        catch (EncoderFallbackException) { throw new Problem("INVALID_IMAGE", "SVG data URL must contain valid UTF-8 text.", 422, location); }
+        catch (DecoderFallbackException) { throw new Problem("INVALID_IMAGE", "SVG data URL must contain valid UTF-8 text.", 422, location); }
+    }
+
+    private static int HexDigit(byte value)
+    {
+        if (value >= '0' && value <= '9') return value - '0';
+        if (value >= 'A' && value <= 'F') return value - 'A' + 10;
+        if (value >= 'a' && value <= 'f') return value - 'a' + 10;
+        return -1;
     }
 
     private byte[] ValidateSvg(string svg, string location)

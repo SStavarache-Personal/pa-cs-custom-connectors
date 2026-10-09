@@ -52,7 +52,7 @@
       "type": "object",
       "required": ["html"],
       "properties": {
-        "html": {"type": "string", "description": "Completed HTML containing one or more section elements with class slide. Each placed object needs left, top, width and height. See the README for supported HTML/CSS.", "x-ms-summary": "HTML slides"},
+        "html": {"type": "string", "description": "Completed HTML containing one or more section elements with class slide. Each placed object needs left, top, width and height. SVG images accept inline markup, base64 data URLs or UTF-8 URL-encoded data URLs (including Power Fx EncodeUrl output). See the README for supported HTML/CSS.", "x-ms-summary": "HTML slides"},
         "fileName": {"type": "string", "default": "Presentation.pptx", "description": "Plain output file name. .pptx is appended when absent.", "x-ms-summary": "Output file name"},
         "strict": {"type": "boolean", "default": true, "description": "Reject unsupported properties, attributes and elements. When false, supported content is converted and unsupported content produces warnings. Invalid geometry, table grids, active content and external assets always fail.", "x-ms-summary": "Strict validation"}
       }
