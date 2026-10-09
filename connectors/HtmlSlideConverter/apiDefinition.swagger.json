@@ -1,0 +1,129 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "HTML Slide Converter",
+    "description": "Compiles explicitly positioned HTML slide sections into an editable presentation, including native text and tables and embedded PNG, JPEG and SVG graphics.",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {},
+  "security": [],
+  "paths": {
+    "/convert-html-to-pptx": {
+      "post": {
+        "operationId": "ConvertHtmlToPptx",
+        "summary": "Convert HTML slides to a presentation",
+        "description": "Converts section.slide elements in document order into one base64-encoded .pptx. Uses a documented fixed-layout HTML/CSS subset; makes no outbound requests.",
+        "x-ms-visibility": "important",
+        "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/HtmlSlideRequest"}}],
+        "responses": {
+          "200": {"description": "The generated presentation and conversion diagnostics.", "schema": {"$ref": "#/definitions/ConversionResponse"}},
+          "400": {"description": "Invalid JSON request.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "408": {"description": "Cancellation or execution budget exceeded.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "413": {"description": "A bounded input, media, object or output limit was exceeded.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "422": {"description": "Invalid HTML, unsupported content, geometry or table grid.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "500": {"description": "Unexpected conversion failure.", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+        }
+      }
+    },
+    "/validate-html-slides": {
+      "post": {
+        "operationId": "ValidateHtmlSlides",
+        "summary": "Validate HTML slides",
+        "description": "Runs the same parser, geometry, table and asset validation as conversion and returns an inventory and diagnostics without packaging a .pptx file.",
+        "parameters": [{"name": "body", "in": "body", "required": true, "schema": {"$ref": "#/definitions/HtmlSlideRequest"}}],
+        "responses": {
+          "200": {"description": "Valid HTML slide inventory.", "schema": {"$ref": "#/definitions/ValidationResponse"}},
+          "400": {"description": "Invalid JSON request.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "408": {"description": "Cancellation or execution budget exceeded.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "413": {"description": "A bounded input, media or object limit was exceeded.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "422": {"description": "Invalid or unsupported slide content.", "schema": {"$ref": "#/definitions/ErrorResponse"}},
+          "500": {"description": "Unexpected validation failure.", "schema": {"$ref": "#/definitions/ErrorResponse"}}
+        }
+      }
+    }
+  },
+  "definitions": {
+    "HtmlSlideRequest": {
+      "type": "object",
+      "required": ["html"],
+      "properties": {
+        "html": {"type": "string", "description": "Completed HTML containing one or more section elements with class slide. Each placed object needs left, top, width and height. See the README for supported HTML/CSS.", "x-ms-summary": "HTML slides"},
+        "fileName": {"type": "string", "default": "Presentation.pptx", "description": "Plain output file name. .pptx is appended when absent.", "x-ms-summary": "Output file name"},
+        "strict": {"type": "boolean", "default": true, "description": "Reject unsupported properties, attributes and elements. When false, supported content is converted and unsupported content produces warnings. Invalid geometry, table grids, active content and external assets always fail.", "x-ms-summary": "Strict validation"}
+      }
+    },
+    "ConversionResponse": {
+      "type": "object",
+      "required": ["fileName", "contentType", "fileContent", "slideCount", "slideWidthPx", "slideHeightPx", "objectCount", "cellCount", "warnings", "slides", "elapsedMilliseconds"],
+      "properties": {
+        "fileName": {"type": "string", "description": "Generated .pptx file name."},
+        "contentType": {"type": "string", "description": "Presentation MIME type."},
+        "fileContent": {"type": "string", "format": "byte", "description": "Base64-encoded presentation. Decode with base64ToBinary() when passing to a file creation action that expects binary."},
+        "slideCount": {"type": "integer", "format": "int32", "description": "Number of generated slides."},
+        "slideWidthPx": {"type": "number", "description": "Canvas width at 96 DPI."},
+        "slideHeightPx": {"type": "number", "description": "Canvas height at 96 DPI."},
+        "objectCount": {"type": "integer", "description": "Number of positioned objects including container backgrounds."},
+        "cellCount": {"type": "integer", "description": "Number of table grid cells including merged continuation cells."},
+        "warnings": {"type": "array", "items": {"$ref": "#/definitions/Diagnostic"}},
+        "slides": {"type": "array", "items": {"$ref": "#/definitions/SlideInventory"}},
+        "elapsedMilliseconds": {"type": "integer", "format": "int64", "description": "Custom-code processing duration."}
+      }
+    },
+    "ValidationResponse": {
+      "type": "object",
+      "required": ["valid", "slideCount", "slideWidthPx", "slideHeightPx", "objectCount", "cellCount", "warnings", "slides", "elapsedMilliseconds"],
+      "properties": {
+        "valid": {"type": "boolean"},
+        "slideCount": {"type": "integer"},
+        "slideWidthPx": {"type": "number"},
+        "slideHeightPx": {"type": "number"},
+        "objectCount": {"type": "integer"},
+        "cellCount": {"type": "integer"},
+        "warnings": {"type": "array", "items": {"$ref": "#/definitions/Diagnostic"}},
+        "slides": {"type": "array", "items": {"$ref": "#/definitions/SlideInventory"}},
+        "elapsedMilliseconds": {"type": "integer", "format": "int64"}
+      }
+    },
+    "SlideInventory": {
+      "type": "object",
+      "properties": {
+        "index": {"type": "integer", "description": "One-based slide order."},
+        "name": {"type": "string"},
+        "textCount": {"type": "integer"},
+        "tableCount": {"type": "integer"},
+        "imageCount": {"type": "integer"}
+      }
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "location": {"type": "string"},
+        "slideIndex": {"type": "integer", "description": "One-based slide, or zero for document-level diagnostics."}
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message"],
+          "properties": {
+            "code": {"type": "string"},
+            "message": {"type": "string"},
+            "slideIndex": {"type": "integer"},
+            "location": {"type": "string"},
+            "warnings": {"type": "array", "items": {"$ref": "#/definitions/Diagnostic"}}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "validate slides",
+  "includeInAutomatedRun": true,
+  "operationId": "ValidateHtmlSlides",
+  "method": "POST",
+  "relativePath": "/validate-html-slides",
+  "requestBody": {
+    "html": "<section class='slide'><p style='left:40px;top:40px;width:800px;height:80px;font-size:32px'>Validation example</p></section>"
+  },
+  "expected": {
+    "statusCode": 200,
+    "bodyJson": {
+      "valid": true,
+      "slideCount": 1,
+      "objectCount": 1,
+      "warnings": []
+    },
+    "outboundRequestCount": 0
+  }
+}
