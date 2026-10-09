@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+  <title>Synthetic completed slide example</title>
+  <style>
+    .slide { width:1280px; height:720px; font-family:Arial; font-size:18px; background:#ffffff; }
+    .title { color:#17365d; font-size:36px; font-weight:bold; }
+    .summary { font-size:20px; color:#444444; }
+    td { padding:6px; vertical-align:middle; }
+    th { padding:6px; vertical-align:middle; }
+  </style>
+</head>
+<body>
+  <section class="slide" data-name="Regional overview">
+    <h1 class="title" style="left:40px;top:32px;width:1200px;height:65px">Regional availability</h1>
+    <p class="summary" style="left:40px;top:108px;width:1200px;height:55px">Example portfolio: <b>three suppliers</b> across four regions</p>
+    <table data-name="Availability" style="left:40px;top:190px;width:1200px;height:420px;
+                 font-size:17px;border:1px solid #17365d;border-collapse:collapse;table-layout:fixed">
+      <colgroup>
+        <col style="width:14%"><col style="width:10%">
+        <col style="width:9.5%"><col style="width:9.5%">
+        <col style="width:9.5%"><col style="width:9.5%">
+        <col style="width:9.5%"><col style="width:9.5%">
+        <col style="width:9.5%"><col style="width:9.5%">
+      </colgroup>
+      <thead>
+        <tr style="height:60px;background:#0070c0;color:#ffffff;text-align:center">
+          <th colspan="2">Standard tier</th>
+          <th colspan="2">Region A</th><th colspan="2">Region B</th>
+          <th colspan="2">Region C</th><th colspan="2">Region D</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:#dce6f1">
+          <td>Reference</td><td>Approved</td><td>Listed</td><td>$0.30</td><td>Listed</td><td>$0.32</td>
+          <td>Listed</td><td>$0.29</td><td>Pending</td><td>$0.31</td>
+        </tr>
+        <tr>
+          <td>Supplier A</td><td>Approved</td><td>Listed</td><td>$0.25</td><td>Listed</td><td>$0.26</td>
+          <td>Listed</td><td>$0.24</td><td>Listed</td><td>$0.25</td>
+        </tr>
+        <tr>
+          <td>Supplier B</td><td>Approved</td><td>Pending</td><td>$0.25</td><td>Listed</td><td>$0.26</td>
+          <td>Listed</td><td>$0.24</td><td>Pending</td><td>$0.25</td>
+        </tr>
+        <tr style="font-weight:bold">
+          <td colspan="2">Selling price</td><td colspan="2">$0.25</td><td colspan="2">$0.26</td><td colspan="2">$0.24</td><td colspan="2">$0.25</td>
+        </tr>
+        <tr style="font-weight:bold">
+          <td colspan="2">Listing price</td><td colspan="2">$0.25</td><td colspan="2">$0.26</td><td colspan="2">$0.24</td><td colspan="2">$0.25</td>
+        </tr>
+        <tr>
+          <td colspan="2">Private</td><td colspan="2">Available</td><td colspan="2">Available</td><td colspan="2">Available</td><td colspan="2">Available</td>
+        </tr>
+        <tr>
+          <td colspan="2">Public</td><td colspan="2">Listed</td><td colspan="2">Listed</td><td colspan="2">Listed</td><td colspan="2">Pending</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="left:40px;top:646px;width:1200px;height:40px;font-size:14px;color:#666666">Synthetic data for connector demonstration</p>
+  </section>
+  <section class="slide" data-name="Supplier sales">
+    <h1 class="title" style="left:40px;top:32px;width:1200px;height:65px">Supplier sales</h1>
+    <p class="summary" style="left:40px;top:108px;width:1200px;height:55px">The table remains editable. The chart is an embedded SVG graphic.</p>
+    <table data-name="Sales" style="left:40px;top:200px;width:530px;height:300px;
+                 font-size:20px;border:1px solid #17365d;padding:10px">
+      <colgroup><col style="width:50%"><col style="width:25%"><col style="width:25%"></colgroup>
+      <thead><tr style="background:#0070c0;color:#ffffff;height:60px"><th>Supplier</th><th>Sales</th><th>Share</th></tr></thead>
+      <tbody>
+        <tr><td>Reference</td><td>$420k</td><td>42%</td></tr>
+        <tr><td>Supplier A</td><td>$350k</td><td>35%</td></tr>
+        <tr><td>Supplier B</td><td>$230k</td><td>23%</td></tr>
+      </tbody>
+    </table>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 360" data-name="Sales chart"
+         style="left:630px;top:190px;width:580px;height:360px">
+      <rect x="0" y="0" width="580" height="360" fill="#ffffff"/>
+      <line x1="70" y1="290" x2="550" y2="290" stroke="#777777" stroke-width="2"/>
+      <rect x="100" y="80" width="100" height="210" fill="#0070c0"/>
+      <rect x="250" y="115" width="100" height="175" fill="#548235"/>
+      <rect x="400" y="175" width="100" height="115" fill="#ed7d31"/>
+      <text x="150" y="60" text-anchor="middle" font-family="Arial" font-size="22" fill="#222222">420</text>
+      <text x="300" y="95" text-anchor="middle" font-family="Arial" font-size="22" fill="#222222">350</text>
+      <text x="450" y="155" text-anchor="middle" font-family="Arial" font-size="22" fill="#222222">230</text>
+      <text x="150" y="325" text-anchor="middle" font-family="Arial" font-size="19" fill="#222222">Reference</text>
+      <text x="300" y="325" text-anchor="middle" font-family="Arial" font-size="19" fill="#222222">Supplier A</text>
+      <text x="450" y="325" text-anchor="middle" font-family="Arial" font-size="19" fill="#222222">Supplier B</text>
+    </svg>
+    <p style="left:40px;top:600px;width:1200px;height:60px;font-size:17px;white-space:pre-wrap">Completed values arrive in the HTML.
+No calculations or chart data bindings are required.</p>
+  </section>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#B7472A",
+    "capabilities": [],
+    "policyTemplateInstances": [],
+    "publisher": "SStavarache",
+    "stackOwner": "SStavarache",
+    "scriptOperations": ["ConvertHtmlToPptx", "ValidateHtmlSlides"]
+  }
+}
