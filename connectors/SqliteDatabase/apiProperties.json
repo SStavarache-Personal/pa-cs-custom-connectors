@@ -1,0 +1,16 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#0F766E",
+    "capabilities": [],
+    "publisher": "Your Organization Name",
+    "stackOwner": "",
+    "scriptOperations": [
+      "QuerySqlite",
+      "ExecuteSqlite",
+      "BulkUpsertSqlite",
+      "ApplyScd2Sqlite",
+      "InspectSqlite"
+    ]
+  }
+}
