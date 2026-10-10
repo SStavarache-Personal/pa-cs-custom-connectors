@@ -26,6 +26,9 @@ jobs:
       - name: Build solution
         run: dotnet build testing/ConnectorTesting.sln --configuration Release --no-restore
 
+      - name: Compile HTML converter against sandbox API surface
+        run: dotnet build testing/HtmlSlideConverterCompile/HtmlSlideConverterCompile.csproj --configuration Release
+
       - name: Run connector tests
         run: >-
           dotnet test testing/ConnectorTesting.sln

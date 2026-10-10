@@ -30,6 +30,7 @@ connectors/
 | [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | Ready |
 | [DatasetSqlQuery](DatasetSqlQuery/) | In-script SQL query execution over user-provided JSON/CSV datasets with joins, aggregates, windows, and multiple output modes | Ready |
 | [EmailTemplateRenderer](EmailTemplateRenderer/) | Render subject, HTML body, and deduplication key templates with simple placeholder replacement and validation | Ready |
+| [HtmlSlideConverter](HtmlSlideConverter/) | Convert completed fixed-layout HTML slides into a .pptx with editable text/tables and embedded chart graphics, without a backend | Local validation; environment smoke test required |
 | [HealthCanadaLnhpd](HealthCanadaLnhpd/) | Health Canada LNHPD direct queries plus bulk extraction helpers with JSON and CSV output modes | Ready |
 | [InessMedicaments](InessMedicaments/) | Scrapes INESSS medication evaluation tables (génériques, innovateurs, autres travaux, sollicitations, produits évalués with pagination) | Ready |
 | [OllamaCloud](OllamaCloud/) | Call Ollama cloud chat, generation, embedding, model listing, and batch chat endpoints with API key authentication | Ready |

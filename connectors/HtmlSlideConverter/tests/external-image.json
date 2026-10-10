@@ -1,0 +1,19 @@
+{
+  "name": "external image",
+  "includeInAutomatedRun": true,
+  "operationId": "ConvertHtmlToPptx",
+  "method": "POST",
+  "relativePath": "/convert-html-to-pptx",
+  "requestBody": {
+    "html": "<section class='slide'><img src='https://example.com/a.png' style='left:0;top:0;width:100px;height:100px'></section>"
+  },
+  "expected": {
+    "statusCode": 422,
+    "bodyJson": {
+      "error": {
+        "code": "EXTERNAL_ASSET"
+      }
+    },
+    "outboundRequestCount": 0
+  }
+}
