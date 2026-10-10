@@ -59,6 +59,12 @@ logs/
 TestResults/
 *.trx
 
+# Downloaded test fixtures and resumable corpus scratch files
+/testing/fixtures/data/
+/testing/corpus/**/*.partial
+/testing/corpus/**/*.state.json
+/testing/corpus/**/*.new
+
 # Secrets and credentials (NEVER commit these)
 *.secrets.json
 secrets.json
