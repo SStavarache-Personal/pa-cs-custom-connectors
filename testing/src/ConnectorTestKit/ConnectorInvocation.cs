@@ -130,6 +130,8 @@ public sealed class ConnectorRuntimeContext
 
     public string OperationId { get; }
 
+    public string CorrelationId { get; } = Guid.NewGuid().ToString();
+
     public HttpRequestMessage Request { get; }
 
     public ILogger Logger { get; }

@@ -29,6 +29,9 @@ jobs:
       - name: Compile HTML converter against sandbox API surface
         run: dotnet build testing/HtmlSlideConverterCompile/HtmlSlideConverterCompile.csproj --configuration Release
 
+      - name: Compile DOCX template generator against sandbox API surface
+        run: dotnet build testing/DocxTemplateGeneratorCompile/DocxTemplateGeneratorCompile.csproj --configuration Release
+
       - name: Run connector tests
         run: >-
           dotnet test testing/ConnectorTesting.sln

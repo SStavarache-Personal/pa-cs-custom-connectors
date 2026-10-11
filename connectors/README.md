@@ -28,6 +28,7 @@ connectors/
 | Connector | Description | Status |
 |-----------|-------------|--------|
 | [HttpRequestAdvanced](HttpRequestAdvanced/) | Enhanced HTTP connector with automatic redirect handling, custom headers, authentication, and full HTTP method support | Ready |
+| [DocxTemplateGenerator](DocxTemplateGenerator/) | Fill Word (.docx) templates with JSON: text tags, repeated table rows, Boolean conditions and checkbox content controls in body, headers and footers, without a backend | Local validation; environment smoke test required |
 | [DatasetSqlQuery](DatasetSqlQuery/) | In-script SQL query execution over user-provided JSON/CSV datasets with joins, aggregates, windows, and multiple output modes | Ready |
 | [EmailTemplateRenderer](EmailTemplateRenderer/) | Render subject, HTML body, and deduplication key templates with simple placeholder replacement and validation | Ready |
 | [HtmlSlideConverter](HtmlSlideConverter/) | Convert completed fixed-layout HTML slides into a .pptx with editable text/tables and embedded chart graphics, without a backend | Local validation; environment smoke test required |

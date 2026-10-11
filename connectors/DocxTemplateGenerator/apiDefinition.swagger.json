@@ -1,0 +1,258 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DOCX Template Generator",
+    "description": "Fills a Word (.docx) template with JSON data: text tags, repeated table rows, Boolean conditions and checkbox content controls, in the body, headers and footers. Runs entirely in the connector's custom code; no document data leaves the connector.",
+    "version": "1.0.0"
+  },
+  "host": "api.example.com",
+  "basePath": "/",
+  "schemes": ["https"],
+  "consumes": ["application/json"],
+  "produces": ["application/json"],
+  "securityDefinitions": {},
+  "security": [],
+  "paths": {
+    "/generate-document": {
+      "post": {
+        "operationId": "GenerateDocument",
+        "summary": "Generate a Word document from a template",
+        "description": "Populates a .docx template with JSON data and returns the generated document as base64. The template layout and formatting are kept. Makes no outbound requests.",
+        "x-ms-visibility": "important",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/GenerateDocumentRequest" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "The generated document.", "schema": { "$ref": "#/definitions/GenerateDocumentResponse" } },
+          "400": { "description": "Invalid request, base64 or JSON data.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "413": { "description": "A size, item-count or processing-time limit was exceeded.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "422": { "description": "The template or data cannot be rendered (missing field, type mismatch, unsupported structure, unsafe package).", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "500": { "description": "Internal failure; quote the correlation ID.", "schema": { "$ref": "#/definitions/ErrorResponse" } }
+        }
+      }
+    },
+    "/validate-template": {
+      "post": {
+        "operationId": "ValidateTemplate",
+        "summary": "Validate a Word template",
+        "description": "Checks that a .docx template is structurally supported and, when JSON data is supplied, that the data fills it without errors. Returns diagnostics and discovered fields instead of a document.",
+        "x-ms-visibility": "advanced",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/ValidateTemplateRequest" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Validation result. Template and data problems are reported with valid=false.", "schema": { "$ref": "#/definitions/ValidateTemplateResponse" } },
+          "400": { "description": "Invalid request shape.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "413": { "description": "The request body is too large.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "500": { "description": "Internal failure; quote the correlation ID.", "schema": { "$ref": "#/definitions/ErrorResponse" } }
+        }
+      }
+    },
+    "/list-placeholders": {
+      "post": {
+        "operationId": "ListPlaceholders",
+        "summary": "List the tags in a Word template",
+        "description": "Lists the text tags, table row sections, conditions and checkbox tags found in a .docx template, with their locations and a sample JSON payload.",
+        "x-ms-visibility": "advanced",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": { "$ref": "#/definitions/ListPlaceholdersRequest" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Discovered fields.", "schema": { "$ref": "#/definitions/ListPlaceholdersResponse" } },
+          "400": { "description": "Invalid request or base64.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "413": { "description": "The template is too large.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "422": { "description": "The file is not a readable or safe .docx package.", "schema": { "$ref": "#/definitions/ErrorResponse" } },
+          "500": { "description": "Internal failure; quote the correlation ID.", "schema": { "$ref": "#/definitions/ErrorResponse" } }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "GenerateDocumentRequest": {
+      "type": "object",
+      "required": ["templateBase64", "dataJson"],
+      "properties": {
+        "templateBase64": {
+          "type": "string",
+          "format": "byte",
+          "x-ms-summary": "Template file content",
+          "description": "The .docx template file content (base64). Typically the File Content output of a SharePoint or OneDrive Get file content action."
+        },
+        "dataJson": {
+          "type": "string",
+          "x-ms-summary": "Data (JSON text)",
+          "description": "A JSON object serialized as text, e.g. {\"CompanyName\":\"Example\",\"Products\":[{\"Name\":\"A\"}]}. In Power Apps use JSON(record); in a flow use string(variables('data')) or a Compose output."
+        },
+        "fileName": {
+          "type": "string",
+          "x-ms-summary": "Output file name",
+          "description": "Optional file name for the generated document. Unsafe characters are replaced and .docx is ensured. Defaults to Document.docx."
+        },
+        "strictMode": {
+          "type": "boolean",
+          "default": true,
+          "x-ms-summary": "Strict mode",
+          "description": "When true (default), a missing or null value is an error. When false, missing text becomes empty, missing conditions/rows are removed, missing checkboxes are left unchanged, and warnings are returned. Structural template errors are always errors."
+        }
+      }
+    },
+    "ValidateTemplateRequest": {
+      "type": "object",
+      "required": ["templateBase64"],
+      "properties": {
+        "templateBase64": {
+          "type": "string",
+          "format": "byte",
+          "x-ms-summary": "Template file content",
+          "description": "The .docx template file content (base64)."
+        },
+        "dataJson": {
+          "type": "string",
+          "x-ms-summary": "Data to test (JSON text)",
+          "description": "Optional JSON object serialized as text. When supplied, the template is also rendered in memory with this data and any data errors are reported."
+        },
+        "strictMode": {
+          "type": "boolean",
+          "default": true,
+          "x-ms-summary": "Strict mode",
+          "description": "Applies the same missing-value rules as Generate document."
+        }
+      }
+    },
+    "ListPlaceholdersRequest": {
+      "type": "object",
+      "required": ["templateBase64"],
+      "properties": {
+        "templateBase64": {
+          "type": "string",
+          "format": "byte",
+          "x-ms-summary": "Template file content",
+          "description": "The .docx template file content (base64)."
+        }
+      }
+    },
+    "GenerateDocumentResponse": {
+      "type": "object",
+      "required": ["fileName", "mimeType", "fileBase64", "warnings", "statistics"],
+      "properties": {
+        "fileName": { "type": "string", "x-ms-summary": "File name", "description": "Sanitized .docx file name." },
+        "mimeType": { "type": "string", "x-ms-summary": "MIME type", "description": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+        "fileBase64": { "type": "string", "format": "byte", "x-ms-summary": "File content (base64)", "description": "The generated .docx as base64. Use base64ToBinary() when a file action expects binary content." },
+        "warnings": { "type": "array", "x-ms-summary": "Warnings", "items": { "$ref": "#/definitions/Diagnostic" } },
+        "statistics": { "$ref": "#/definitions/Statistics" }
+      }
+    },
+    "ValidateTemplateResponse": {
+      "type": "object",
+      "required": ["valid", "dataValidated", "errors", "warnings", "fields", "storyParts"],
+      "properties": {
+        "valid": { "type": "boolean", "x-ms-summary": "Valid", "description": "True when no errors were found." },
+        "dataValidated": { "type": "boolean", "x-ms-summary": "Data validated", "description": "True when dataJson was supplied and the template was rendered with it." },
+        "errors": { "type": "array", "x-ms-summary": "Errors", "items": { "$ref": "#/definitions/Diagnostic" } },
+        "warnings": { "type": "array", "x-ms-summary": "Warnings", "items": { "$ref": "#/definitions/Diagnostic" } },
+        "fields": { "type": "array", "x-ms-summary": "Fields", "items": { "$ref": "#/definitions/Field" } },
+        "storyParts": { "type": "array", "x-ms-summary": "Story parts", "items": { "$ref": "#/definitions/StoryPart" } },
+        "statistics": { "$ref": "#/definitions/Statistics" },
+        "elapsedMilliseconds": { "type": "integer", "format": "int64", "x-ms-summary": "Elapsed milliseconds" }
+      }
+    },
+    "ListPlaceholdersResponse": {
+      "type": "object",
+      "required": ["fields", "storyParts", "sampleDataJson", "errors", "warnings"],
+      "properties": {
+        "fields": { "type": "array", "x-ms-summary": "Fields", "items": { "$ref": "#/definitions/Field" } },
+        "storyParts": { "type": "array", "x-ms-summary": "Story parts", "items": { "$ref": "#/definitions/StoryPart" } },
+        "sampleDataJson": { "type": "string", "x-ms-summary": "Sample data JSON", "description": "Best-effort skeleton payload built from the discovered fields." },
+        "errors": { "type": "array", "x-ms-summary": "Template errors", "items": { "$ref": "#/definitions/Diagnostic" } },
+        "warnings": { "type": "array", "x-ms-summary": "Warnings", "items": { "$ref": "#/definitions/Diagnostic" } },
+        "elapsedMilliseconds": { "type": "integer", "format": "int64", "x-ms-summary": "Elapsed milliseconds" }
+      }
+    },
+    "Field": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "x-ms-summary": "Name", "description": "The tag as written in the template, e.g. Name or Root.CompanyName." },
+        "dataPath": { "type": "string", "x-ms-summary": "Data path", "description": "Path from the top-level JSON object; [] marks array items, e.g. Products[].Name." },
+        "type": { "type": "string", "x-ms-summary": "Type", "description": "text, tableRow, condition or checkbox." },
+        "acceptedValues": { "type": "array", "x-ms-summary": "Accepted values", "items": { "type": "string" } },
+        "likelyType": { "type": "string", "x-ms-summary": "Likely type", "description": "For tableRow: array when the row uses item fields, otherwise boolean." },
+        "scope": { "type": "string", "x-ms-summary": "Scope", "description": "Enclosing repeated row path, or empty at the top level." },
+        "occurrences": { "type": "integer", "format": "int32", "x-ms-summary": "Occurrences" },
+        "locations": {
+          "type": "array",
+          "x-ms-summary": "Locations",
+          "items": {
+            "type": "object",
+            "properties": {
+              "part": { "type": "string", "x-ms-summary": "Part" },
+              "location": { "type": "string", "x-ms-summary": "Location" }
+            }
+          }
+        }
+      }
+    },
+    "StoryPart": {
+      "type": "object",
+      "properties": {
+        "part": { "type": "string", "x-ms-summary": "Part", "description": "Package part name, e.g. word/header2.xml." },
+        "type": { "type": "string", "x-ms-summary": "Type", "description": "body, header or footer." },
+        "references": { "type": "array", "x-ms-summary": "References", "items": { "type": "string" } }
+      }
+    },
+    "Statistics": {
+      "type": "object",
+      "properties": {
+        "textFieldsReplaced": { "type": "integer", "format": "int32", "x-ms-summary": "Text fields replaced" },
+        "tableRowsCreated": { "type": "integer", "format": "int32", "x-ms-summary": "Table rows created" },
+        "conditionalBlocksEvaluated": { "type": "integer", "format": "int32", "x-ms-summary": "Conditions evaluated" },
+        "checkboxesUpdated": { "type": "integer", "format": "int32", "x-ms-summary": "Checkboxes updated" },
+        "storyPartsProcessed": { "type": "integer", "format": "int32", "x-ms-summary": "Story parts processed" },
+        "elapsedMilliseconds": { "type": "integer", "format": "int64", "x-ms-summary": "Elapsed milliseconds" }
+      }
+    },
+    "Diagnostic": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string", "x-ms-summary": "Code" },
+        "message": { "type": "string", "x-ms-summary": "Message" },
+        "part": { "type": "string", "x-ms-summary": "Part" },
+        "field": { "type": "string", "x-ms-summary": "Field" },
+        "location": { "type": "string", "x-ms-summary": "Location" }
+      }
+    },
+    "ErrorResponse": {
+      "type": "object",
+      "required": ["error"],
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message", "correlationId"],
+          "properties": {
+            "code": { "type": "string", "x-ms-summary": "Error code" },
+            "message": { "type": "string", "x-ms-summary": "Error message" },
+            "part": { "type": "string", "x-ms-summary": "Part" },
+            "field": { "type": "string", "x-ms-summary": "Field" },
+            "location": { "type": "string", "x-ms-summary": "Location" },
+            "correlationId": { "type": "string", "x-ms-summary": "Correlation ID" },
+            "relatedErrors": { "type": "array", "x-ms-summary": "Related errors", "items": { "$ref": "#/definitions/Diagnostic" } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "connectionParameters": {},
+    "iconBrandColor": "#2B579A",
+    "capabilities": [],
+    "policyTemplateInstances": [],
+    "publisher": "SStavarache",
+    "stackOwner": "SStavarache",
+    "scriptOperations": ["GenerateDocument", "ValidateTemplate", "ListPlaceholders"]
+  }
+}

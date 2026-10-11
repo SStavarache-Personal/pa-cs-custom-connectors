@@ -1,0 +1,19 @@
+{
+  "OrderNumber": "SO-1001",
+  "Customer": {
+    "Name": "Société Générale Ltée"
+  },
+  "ShowTerms": true,
+  "Lines": [
+    {
+      "Item": "Widget",
+      "Qty": 2,
+      "Amount": "$4.00"
+    },
+    {
+      "Item": "Gadget",
+      "Qty": 1,
+      "Amount": "$9.99"
+    }
+  ]
+}
